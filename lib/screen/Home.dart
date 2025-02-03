@@ -14,137 +14,225 @@ class Home extends ConsumerWidget {
     final healthReport = ref.watch(healthReportProvider);
 
     return healthReport.when(
-      data: (activities) {
-        if (activities?.isEmpty ?? true) {
-          return const Scaffold(
-            body: Center(child: Text('没有健康报告数据')),
-          );
-        }
+      data: (activities) => _buildHomeScreen(activities),
+      loading: () => _buildLoadingScreen(),
+      error: (error, stack) => _buildErrorScreen(error),
+    );
+  }
 
-        return Scaffold(
-          backgroundColor: const Color.fromARGB(255, 56, 33, 50),
-          body: SafeArea(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 45),
-                    Container(
-                      width: double.infinity,
-                      height: 129,
-                      decoration: BoxDecoration(
-                        color: Color.fromRGBO(35, 35, 37, 1),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(14.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              DateFormat('EEEE').format(DateTime.now()),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            SizedBox(height: 5),
-                            Text(
-                              DateFormat('MMMM d, y').format(DateTime.now()),
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.6),
-                                fontSize: 11,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            SizedBox(height: 20),
-                            _buildWeekDays(),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    ...activities.map((activity) {
-                      if (activity.type == ActivityType.meal) {
-                        return _buildMealSection(
-                          activity.title,
-                          activity.time,
-                          activity.mealItems
-                                  ?.map((item) =>
-                                      _buildMealItem(item.name, item.kcal))
-                                  .toList() ??
-                              [],
-                        );
-                      } else {
-                        return _buildActivitySection(
-                          activity.title,
-                          activity.time,
-                          activity.kcal,
-                        );
-                      }
-                    }).toList(),
-                    SizedBox(height: 20),
-                    Container(
-                      width: double.infinity,
-                      height: 58,
-                      decoration: BoxDecoration(
-                        color: Color.fromRGBO(35, 35, 37, 1),
-                        borderRadius: BorderRadius.circular(46),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color.fromRGBO(55, 236, 203, 0.39),
-                            offset: Offset(0, 4),
-                            blurRadius: 14,
-                          ),
-                        ],
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Color.fromRGBO(55, 236, 203, 1),
-                            Color.fromRGBO(27, 137, 117, 1),
-                            Color.fromRGBO(37, 198, 168, 1),
-                          ],
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Ask AI',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600,
-                            foreground: Paint()
-                              ..shader = LinearGradient(
-                                colors: <Color>[
-                                  Colors.white,
-                                  Colors.white.withOpacity(0.6),
-                                ],
-                              ).createShader(
-                                  Rect.fromLTWH(0.0, 0.0, 50.0, 19.0)),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+  Widget _buildHomeScreen(List<ActivityItem>? activities) {
+    if (activities?.isEmpty ?? true) {
+      return const Scaffold(
+        body: Center(child: Text('没有健康报告数据')),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 56, 33, 50),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          children: [
+            const SizedBox(height: 45),
+            _buildDateHeader(),
+            const SizedBox(height: 20),
+            ...(activities?.map(_buildActivityItem).toList() ?? []),
+            const SizedBox(height: 20),
+            _buildAskAiButton(),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
-      error: (error, stack) => Scaffold(
+    );
+  }
+
+  Widget _buildDateHeader() => Container(
+        width: double.infinity,
+        height: 129,
+        decoration: _buildHeaderDecoration(),
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDateText(),
+              const SizedBox(height: 20),
+              _buildWeekDays(),
+            ],
+          ),
+        ),
+      );
+
+  BoxDecoration _buildHeaderDecoration() => BoxDecoration(
+        color: const Color.fromRGBO(35, 35, 37, 1),
+        borderRadius: BorderRadius.circular(16),
+      );
+
+  Widget _buildDateText() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            DateFormat('EEEE').format(DateTime.now()),
+            style: _buildTextStyle(14, false),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            DateFormat('MMMM d, y').format(DateTime.now()),
+            style: _buildTextStyle(11, true),
+          ),
+        ],
+      );
+
+  TextStyle _buildTextStyle(double size, bool isSecondary) => TextStyle(
+        color: isSecondary ? Colors.white.withOpacity(0.6) : Colors.white,
+        fontSize: size,
+        fontFamily: 'Inter',
+        fontWeight: FontWeight.w500,
+      );
+
+  Widget _buildActivityItem(ActivityItem activity) => activity.type ==
+          ActivityType.meal
+      ? _buildMealSection(
+          activity.title, activity.time, _buildMealItems(activity.mealItems))
+      : _buildActivitySection(activity.title, activity.time, activity.kcal);
+
+  List<Widget> _buildMealItems(List<MealItem>? mealItems) =>
+      mealItems?.map((item) => _buildMealItem(item.name, item.kcal)).toList() ??
+      [];
+
+  Widget _buildActivitySection(String title, String time, String kcal) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10.0),
+        child: Row(
+          children: [
+            Text(time, style: _buildTextStyle(12, true)),
+            const SizedBox(width: 62),
+            Text(title, style: _buildTextStyle(18, false)),
+            const Spacer(),
+            Text(kcal, style: _buildTextStyle(14, false)),
+          ],
+        ),
+      );
+
+  Widget _buildMealSection(String title, String time, List<Widget> items) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(time, style: _buildTextStyle(12, true)),
+                const SizedBox(width: 62),
+                Text(title, style: _buildTextStyle(18, false)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ...items,
+          ],
+        ),
+      );
+
+  Widget _buildMealItem(String name, String kcal) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5.0),
+        child: Row(
+          children: [
+            const SizedBox(width: 78),
+            Text(name, style: _buildTextStyle(14, false)),
+            const Spacer(),
+            Text(kcal, style: _buildTextStyle(14, false)),
+          ],
+        ),
+      );
+
+  Widget _buildWeekDays() {
+    final now = DateTime.now();
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+    return Row(
+      children:
+          List.generate(7, (index) => _buildDayItem(weekStart, index, now)),
+    );
+  }
+
+  Widget _buildDayItem(DateTime weekStart, int index, DateTime now) {
+    final date = weekStart.add(Duration(days: index));
+    final isToday = date.day == now.day;
+    return Padding(
+      padding: const EdgeInsets.only(right: 14.0),
+      child: Container(
+        width: 48,
+        height: 44,
+        decoration: BoxDecoration(
+          color: isToday
+              ? const Color.fromRGBO(21, 17, 20, 1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: _buildDayContent(date),
+      ),
+    );
+  }
+
+  Widget _buildDayContent(DateTime date) => Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('${date.day}', style: _buildTextStyle(14, false)),
+          Text(DateFormat('E').format(date), style: _buildTextStyle(11, true)),
+        ],
+      );
+
+  Widget _buildAskAiButton() => Container(
+        width: double.infinity,
+        height: 58,
+        decoration: _buildAskAiButtonDecoration(),
+        child: Center(
+          child: Text(
+            'Ask AI',
+            style: _buildAskAiTextStyle(),
+          ),
+        ),
+      );
+
+  BoxDecoration _buildAskAiButtonDecoration() => BoxDecoration(
+        color: const Color.fromRGBO(35, 35, 37, 1),
+        borderRadius: BorderRadius.circular(46),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromRGBO(55, 236, 203, 0.39),
+            offset: Offset(0, 4),
+            blurRadius: 14,
+          ),
+        ],
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.fromRGBO(55, 236, 203, 1),
+            Color.fromRGBO(27, 137, 117, 1),
+            Color.fromRGBO(37, 198, 168, 1),
+          ],
+        ),
+      );
+
+  TextStyle _buildAskAiTextStyle() => TextStyle(
+        fontSize: 16,
+        fontFamily: 'Inter',
+        fontWeight: FontWeight.w600,
+        foreground: Paint()
+          ..shader = LinearGradient(
+            colors: [
+              Colors.white,
+              Colors.white.withOpacity(0.6),
+            ],
+          ).createShader(const Rect.fromLTWH(0.0, 0.0, 50.0, 19.0)),
+      );
+
+  Widget _buildLoadingScreen() => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+
+  Widget _buildErrorScreen(Object error) => Scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -155,160 +243,5 @@ class Home extends ConsumerWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildActivitySection(String title, String time, String kcal) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Row(
-        children: [
-          Text(
-            time,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
-              fontSize: 12,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          SizedBox(width: 62),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          Spacer(),
-          Text(
-            kcal,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMealSection(String title, String time, List<Widget> items) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                time,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
-                  fontSize: 12,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(width: 62),
-              Text(
-                title,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 10),
-          ...items,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMealItem(String name, String kcal) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5.0),
-      child: Row(
-        children: [
-          SizedBox(width: 78),
-          Text(
-            name,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-          Spacer(),
-          Text(
-            kcal,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWeekDays() {
-    final now = DateTime.now();
-    final weekStart = now.subtract(Duration(days: now.weekday - 1));
-
-    return Row(
-      children: List.generate(7, (index) {
-        final date = weekStart.add(Duration(days: index));
-        final isToday = date.day == now.day;
-
-        return Padding(
-          padding: const EdgeInsets.only(right: 14.0),
-          child: Container(
-            width: 48,
-            height: 44,
-            decoration: BoxDecoration(
-              color:
-                  isToday ? Color.fromRGBO(21, 17, 20, 1) : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '${date.day}',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  DateFormat('E').format(date),
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
-                    fontSize: 11,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }),
-    );
-  }
+      );
 }
