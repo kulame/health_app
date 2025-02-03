@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 
 class Home extends StatelessWidget {
+  final Map<String, dynamic>? analysisResult;
+
+  const Home({
+    Key? key,
+    this.analysisResult,
+  }) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,7 +78,15 @@ class Home extends StatelessWidget {
                                       ),
                                     ),
                                     Text(
-                                      ['Mon', 'Tue', 'Wed', 'Thr', 'Fri', 'Sat', 'Sun'][index],
+                                      [
+                                        'Mon',
+                                        'Tue',
+                                        'Wed',
+                                        'Thr',
+                                        'Fri',
+                                        'Sat',
+                                        'Sun'
+                                      ][index],
                                       style: TextStyle(
                                         color: Colors.white.withOpacity(0.6),
                                         fontSize: 11,

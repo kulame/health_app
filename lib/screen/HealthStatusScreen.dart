@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 import 'Home.dart';
+import '../services/gpt_service.dart';
 
 class HealthStatusScreen extends StatefulWidget {
   @override
@@ -8,8 +10,10 @@ class HealthStatusScreen extends StatefulWidget {
 }
 
 class _HealthStatusScreenState extends State<HealthStatusScreen> {
+  final GptService _gptService = GptService();
   String? _fileName;
   bool _isUploading = false;
+  Map<String, dynamic>? _analysisResult;
 
   Future<void> _pickAndUploadFile() async {
     try {
@@ -24,13 +28,26 @@ class _HealthStatusScreenState extends State<HealthStatusScreen> {
         setState(() {
           _fileName = result.files.single.name;
         });
-        // TODO: 这里添加上传到服务器的逻辑
-        // 示例：等待2秒模拟上传
-        await Future.delayed(Duration(seconds: 2));
+
+        // 获取文件路径并创建File对象
+        final String? path = result.files.single.path;
+        if (path != null) {
+          final File file = File(path);
+
+          // 提取PDF文本
+          final String pdfText = await _gptService.extractTextFromPdf(file);
+
+          // 调用GPT-4分析文本
+          final analysisResult = await _gptService.analyzeHealthReport(pdfText);
+
+          setState(() {
+            _analysisResult = analysisResult;
+          });
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('文件上传失败：$e')),
+        SnackBar(content: Text('文件处理失败：$e')),
       );
     } finally {
       setState(() => _isUploading = false);
@@ -187,10 +204,12 @@ class _HealthStatusScreenState extends State<HealthStatusScreen> {
                     onTap: _fileName == null
                         ? null
                         : () {
-                            // TODO: 在这里添加调用GPT-4分析PDF的逻辑
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => Home()),
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    Home(analysisResult: _analysisResult),
+                              ),
                             );
                           },
                     child: Center(
