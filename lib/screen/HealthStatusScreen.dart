@@ -3,59 +3,31 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'Home.dart';
 import '../services/gpt_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/health_report_provider.dart';
 
-class HealthStatusScreen extends StatefulWidget {
+class HealthStatusScreen extends ConsumerStatefulWidget {
+  const HealthStatusScreen({super.key});
+
   @override
-  _HealthStatusScreenState createState() => _HealthStatusScreenState();
+  ConsumerState<HealthStatusScreen> createState() => _HealthStatusScreenState();
 }
 
-class _HealthStatusScreenState extends State<HealthStatusScreen> {
-  final GptService _gptService = GptService();
+class _HealthStatusScreenState extends ConsumerState<HealthStatusScreen> {
   String? _fileName;
   bool _isUploading = false;
-  Map<String, dynamic>? _analysisResult;
-
-  Future<void> _pickAndUploadFile() async {
-    try {
-      setState(() => _isUploading = true);
-
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'],
-      );
-
-      if (result != null) {
-        setState(() {
-          _fileName = result.files.single.name;
-        });
-
-        // 获取文件路径并创建File对象
-        final String? path = result.files.single.path;
-        if (path != null) {
-          final File file = File(path);
-
-          // 提取PDF文本
-          final String pdfText = await _gptService.extractTextFromPdf(file);
-
-          // 调用GPT-4分析文本
-          final analysisResult = await _gptService.analyzeHealthReport(pdfText);
-
-          setState(() {
-            _analysisResult = analysisResult;
-          });
-        }
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('文件处理失败：$e')),
-      );
-    } finally {
-      setState(() => _isUploading = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(healthReportProvider, (previous, next) {
+      if (next is AsyncData && next.value != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Home()),
+        );
+      }
+    });
+
     return Scaffold(
       backgroundColor: Color.fromRGBO(21, 17, 20, 1),
       body: SafeArea(
@@ -112,7 +84,35 @@ class _HealthStatusScreenState extends State<HealthStatusScreen> {
                 ),
                 SizedBox(height: 20),
                 GestureDetector(
-                  onTap: _isUploading ? null : _pickAndUploadFile,
+                  onTap: _isUploading
+                      ? null
+                      : () async {
+                          try {
+                            FilePickerResult? result =
+                                await FilePicker.platform.pickFiles(
+                              type: FileType.custom,
+                              allowedExtensions: ['pdf'],
+                            );
+
+                            if (result != null &&
+                                result.files.single.path != null) {
+                              setState(() {
+                                _fileName = result.files.single.name;
+                                _isUploading = true;
+                              });
+
+                              final file = File(result.files.single.path!);
+                              await ref
+                                  .read(healthReportProvider.notifier)
+                                  .analyzeReport(file);
+                            }
+                          } catch (e) {
+                            setState(() => _isUploading = false);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('文件处理失败：$e')),
+                            );
+                          }
+                        },
                   child: Container(
                     width: double.infinity,
                     height: 159,
@@ -147,7 +147,7 @@ class _HealthStatusScreenState extends State<HealthStatusScreen> {
                         SizedBox(height: 8),
                         Text(
                           _isUploading
-                              ? '上传中...'
+                              ? '正在分析...'
                               : _fileName != null
                                   ? '点击更换文件'
                                   : '点击上传PDF文件',
@@ -201,25 +201,33 @@ class _HealthStatusScreenState extends State<HealthStatusScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: GestureDetector(
-                    onTap: _fileName == null
-                        ? null
-                        : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    Home(analysisResult: _analysisResult),
-                              ),
-                            );
-                          },
+                    onTap: () async {
+                      try {
+                        FilePickerResult? result =
+                            await FilePicker.platform.pickFiles(
+                          type: FileType.custom,
+                          allowedExtensions: ['pdf'],
+                        );
+
+                        if (result != null &&
+                            result.files.single.path != null) {
+                          final file = File(result.files.single.path!);
+                          await ref
+                              .read(healthReportProvider.notifier)
+                              .analyzeReport(file);
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('文件处理失败：$e')),
+                        );
+                      }
+                    },
                     child: Center(
                       child: Text(
                         "Next",
                         style: TextStyle(
                           fontSize: 14,
-                          color: _fileName == null
-                              ? Colors.white.withOpacity(0.5)
-                              : Colors.white,
+                          color: Colors.white,
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w500,
                         ),
