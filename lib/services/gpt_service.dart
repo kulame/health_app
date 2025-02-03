@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -51,12 +52,22 @@ class GptService {
         },
       );
 
+      developer.log('GPT-4O API Response:', error: {
+        'statusCode': response.statusCode,
+        'headers': response.headers,
+        'data': response.data,
+      });
+
       if (response.data['error'] != null) {
         throw Exception(response.data['error']['message']);
       }
 
-      return response.data;
+      final result = response.data;
+      developer.log('Parsed Health Report:', error: result);
+
+      return result;
     } catch (e) {
+      developer.log('Error in analyzeHealthReport:', error: e);
       throw Exception('分析报告失败: $e');
     }
   }
