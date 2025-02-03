@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:convert';
 
 class GptService {
   final Dio _dio = Dio();
@@ -37,86 +38,91 @@ class GptService {
             {
               'role': 'system',
               'content': '''你是一个医疗康复专家。请分析以下医疗报告，并制定一天的康复计划。
-                返回JSON格式，必须包含以下结构：
+                请严格按照以下JSON格式返回，不要添加任何其他内容：
                 {
-                  "healthStatus": {
-                    "bloodPressure": "血压值",
-                    "bloodSugar": "血糖值",
-                    "cholesterol": "胆固醇值",
-                    "heartRate": "心率",
-                    "otherIndicators": ["其他重要指标"]
-                  },
                   "dailyPlan": {
                     "morningRoutine": [
                       {
-                        "time": "具体时间",
+                        "time": "HH:MM AM/PM",
                         "activity": "活动名称",
-                        "duration": "持续时间",
-                        "calories": "消耗卡路里",
-                        "notes": "注意事项"
-                      }
-                    ],
-                    "meals": [
-                      {
-                        "time": "用餐时间",
-                        "type": "餐类型",
-                        "menu": ["具体食物"],
-                        "calories": "摄入卡路里",
-                        "nutritionTips": "营养建议"
+                        "calories": "± XXX Kcal"
                       }
                     ],
                     "exercises": [
                       {
-                        "time": "锻炼时间",
-                        "type": "运动类型",
-                        "intensity": "运动强度",
-                        "duration": "持续时间",
-                        "calories": "消耗卡路里",
-                        "precautions": "注意事项"
+                        "time": "HH:MM AM/PM",
+                        "type": "运动名称",
+                        "calories": "- XXX Kcal"
                       }
                     ],
-                    "medications": [
+                    "meals": [
                       {
-                        "time": "服药时间",
-                        "name": "药品名称",
-                        "dosage": "剂量",
-                        "notes": "服药说明"
+                        "time": "HH:MM AM/PM",
+                        "type": "餐类型",
+                        "calories": "+ XXX Kcal",
+                        "menu": ["食物1", "食物2", "食物3"]
                       }
                     ]
-                  },
-                  "recommendations": {
-                    "lifestyle": ["生活方式建议"],
-                    "diet": ["饮食建议"],
-                    "exercise": ["运动建议"],
-                    "followUp": "后续就医建议"
                   }
-                }
-                '''
+                }'''
             },
             {'role': 'user', 'content': pdfText}
           ],
-          'max_tokens': _maxTokens,
-          'temperature': _temperature,
+          'temperature': 0.3,
         },
       );
 
-      developer.log('GPT-4O API Response:', error: {
-        'statusCode': response.statusCode,
-        'headers': response.headers,
-        'data': response.data,
-      });
+      print('GPT API Response: ${response.data}');
 
       if (response.data['error'] != null) {
         throw Exception(response.data['error']['message']);
       }
 
-      final result = response.data;
-      developer.log('Parsed Health Report:', error: result);
+      String content =
+          response.data['choices'][0]['message']['content'] as String;
 
+      // 清理 JSON 字符串
+      content = _cleanJsonString(content);
+      print('Cleaned content: $content');
+
+      final result = jsonDecode(content) as Map<String, dynamic>;
+      print('Parsed Result: $result');
+
+      _validateResponse(result);
       return result;
-    } catch (e) {
-      developer.log('Error in analyzeHealthReport:', error: e);
+    } catch (e, stack) {
+      print('Error in analyzeHealthReport: $e\n$stack');
       throw Exception('分析报告失败: $e');
+    }
+  }
+
+  String _cleanJsonString(String input) {
+    // 移除 JSON 代码块标记
+    var cleaned = input.replaceAll(RegExp(r'```json|```'), '').trim();
+
+    // 移除零宽字符和其他不可见字符
+    cleaned = cleaned.replaceAll('\u200B', ''); // 零宽空格
+    cleaned = cleaned.replaceAll('\u200C', ''); // 零宽非连接符
+    cleaned = cleaned.replaceAll('\u200D', ''); // 零宽连接符
+    cleaned = cleaned.replaceAll('\uFEFF', ''); // 字节顺序标记
+
+    // 移除多余的空白字符
+    cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    return cleaned;
+  }
+
+  void _validateResponse(Map<String, dynamic> data) {
+    if (!data.containsKey('dailyPlan')) {
+      throw Exception('返回数据缺少 dailyPlan 字段');
+    }
+
+    final plan = data['dailyPlan'] as Map<String, dynamic>;
+
+    if (!plan.containsKey('morningRoutine') ||
+        !plan.containsKey('exercises') ||
+        !plan.containsKey('meals')) {
+      throw Exception('dailyPlan 缺少必要字段');
     }
   }
 }

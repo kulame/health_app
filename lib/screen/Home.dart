@@ -4,7 +4,7 @@ import '../providers/activity_provider.dart';
 import '../models/activity_item.dart';
 import '../providers/health_report_provider.dart';
 import 'dart:convert';
-import 'dart:developer' as developer;
+import 'package:intl/intl.dart';
 
 class Home extends ConsumerWidget {
   const Home({super.key});
@@ -14,56 +14,15 @@ class Home extends ConsumerWidget {
     final healthReport = ref.watch(healthReportProvider);
 
     return healthReport.when(
-      data: (report) {
-        if (report == null) {
+      data: (activities) {
+        if (activities?.isEmpty ?? true) {
           return const Scaffold(
             body: Center(child: Text('没有健康报告数据')),
           );
         }
 
-        try {
-          // 获取 GPT 返回的 content
-          final content = report['choices'][0]['message']['content'] as String;
-          developer.log('Raw GPT response:', error: content); // 添加日志
-
-          // 清理和格式化 JSON 字符串
-          final cleanContent = content
-              .trim()
-              .replaceAll(
-                  RegExp(r'^\s*```json\s*|\s*```\s*$'), '') // 移除可能的 JSON 标记
-              .replaceAll(RegExp(r'[\u{200B}-\u{200D}\u{FEFF}]'), ''); // 移除零宽字符
-
-          // 解析 JSON 字符串为 Map
-          final dailyPlan = jsonDecode(cleanContent) as Map<String, dynamic>;
-          developer.log('Parsed JSON:', error: dailyPlan); // 添加日志
-
-          // 更新活动列表
-          ref.read(activitiesProvider.notifier).updateFromReport(dailyPlan);
-        } catch (e, stack) {
-          developer.log('Data parsing error:', error: e, stackTrace: stack);
-          return Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('数据解析错误'),
-                  if (report['choices']?[0]?['message']?['content'] != null)
-                    SelectableText(
-                      report['choices'][0]['message']['content'].toString(),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  Text(e.toString()),
-                ],
-              ),
-            ),
-          );
-        }
-
-        // 显示活动列表
-        final activities = ref.watch(activitiesProvider);
-
         return Scaffold(
-          backgroundColor: const Color.fromRGBO(21, 17, 20, 1),
+          backgroundColor: const Color.fromARGB(255, 56, 33, 50),
           body: SafeArea(
             child: SingleChildScrollView(
               child: Padding(
@@ -85,7 +44,7 @@ class Home extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Wednesday',
+                              DateFormat('EEEE').format(DateTime.now()),
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
@@ -95,7 +54,7 @@ class Home extends ConsumerWidget {
                             ),
                             SizedBox(height: 5),
                             Text(
-                              'October 9, 2024',
+                              DateFormat('MMMM d, y').format(DateTime.now()),
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.6),
                                 fontSize: 11,
@@ -104,56 +63,7 @@ class Home extends ConsumerWidget {
                               ),
                             ),
                             SizedBox(height: 20),
-                            Row(
-                              children: List.generate(7, (index) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 14.0),
-                                  child: Container(
-                                    width: 48,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: index == 2
-                                          ? Color.fromRGBO(21, 17, 20, 1)
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          '${7 + index}',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontFamily: 'Inter',
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        Text(
-                                          [
-                                            'Mon',
-                                            'Tue',
-                                            'Wed',
-                                            'Thr',
-                                            'Fri',
-                                            'Sat',
-                                            'Sun'
-                                          ][index],
-                                          style: TextStyle(
-                                            color:
-                                                Colors.white.withOpacity(0.6),
-                                            fontSize: 11,
-                                            fontFamily: 'Inter',
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ),
+                            _buildWeekDays(),
                           ],
                         ),
                       ),
@@ -232,7 +142,16 @@ class Home extends ConsumerWidget {
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (error, stack) => Scaffold(
-        body: Center(child: Text('错误: $error')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('数据解析错误'),
+              const SizedBox(height: 8),
+              Text(error.toString()),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -339,6 +258,54 @@ class Home extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildWeekDays() {
+    final now = DateTime.now();
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+
+    return Row(
+      children: List.generate(7, (index) {
+        final date = weekStart.add(Duration(days: index));
+        final isToday = date.day == now.day;
+
+        return Padding(
+          padding: const EdgeInsets.only(right: 14.0),
+          child: Container(
+            width: 48,
+            height: 44,
+            decoration: BoxDecoration(
+              color:
+                  isToday ? Color.fromRGBO(21, 17, 20, 1) : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '${date.day}',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  DateFormat('E').format(date),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.6),
+                    fontSize: 11,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
     );
   }
 }

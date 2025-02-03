@@ -6,49 +6,7 @@ part 'activity_provider.g.dart';
 @riverpod
 class Activities extends _$Activities {
   @override
-  List<ActivityItem> build() => const [
-        ActivityItem(
-          title: 'Get up',
-          time: '7:00 AM',
-          kcal: '- 100 Kcal',
-          type: ActivityType.activity,
-        ),
-        ActivityItem(
-          title: 'Morning Run',
-          time: '7:30 AM',
-          kcal: '- 350 Kcal',
-          type: ActivityType.activity,
-        ),
-        ActivityItem(
-          title: 'Breakfast',
-          time: '8:30 AM',
-          kcal: '+ 385 Kcal',
-          type: ActivityType.meal,
-          mealItems: [
-            MealItem(name: 'Oatmeal', kcal: '+ 150 Kcal'),
-            MealItem(name: 'Banana', kcal: '+ 105 Kcal'),
-            MealItem(name: 'Greek Yogurt', kcal: '+ 130 Kcal'),
-          ],
-        ),
-        ActivityItem(
-          title: 'Gym Workout',
-          time: '10:00 AM',
-          kcal: '- 400 Kcal',
-          type: ActivityType.activity,
-        ),
-        ActivityItem(
-          title: 'Lunch',
-          time: '12:30 PM',
-          kcal: '+ 550 Kcal',
-          type: ActivityType.meal,
-          mealItems: [
-            MealItem(name: 'Grilled Chicken', kcal: '+ 250 Kcal'),
-            MealItem(name: 'Brown Rice', kcal: '+ 200 Kcal'),
-            MealItem(name: 'Salad', kcal: '+ 100 Kcal'),
-          ],
-        ),
-        // ... 更多数据
-      ];
+  List<ActivityItem> build() => const [];
 
   void updateActivities(List<ActivityItem> activities) {
     state = activities;
