@@ -36,13 +36,61 @@ class GptService {
           'messages': [
             {
               'role': 'system',
-              'content': '''你是一个医疗报告分析专家。请分析以下医疗报告，提取关键健康指标。
-                返回JSON格式，包含以下字段：
-                - bloodPressure: 血压值
-                - bloodSugar: 血糖值
-                - cholesterol: 胆固醇值
-                - heartRate: 心率
-                - otherIndicators: 其他重要指标
+              'content': '''你是一个医疗康复专家。请分析以下医疗报告，并制定一天的康复计划。
+                返回JSON格式，必须包含以下结构：
+                {
+                  "healthStatus": {
+                    "bloodPressure": "血压值",
+                    "bloodSugar": "血糖值",
+                    "cholesterol": "胆固醇值",
+                    "heartRate": "心率",
+                    "otherIndicators": ["其他重要指标"]
+                  },
+                  "dailyPlan": {
+                    "morningRoutine": [
+                      {
+                        "time": "具体时间",
+                        "activity": "活动名称",
+                        "duration": "持续时间",
+                        "calories": "消耗卡路里",
+                        "notes": "注意事项"
+                      }
+                    ],
+                    "meals": [
+                      {
+                        "time": "用餐时间",
+                        "type": "餐类型",
+                        "menu": ["具体食物"],
+                        "calories": "摄入卡路里",
+                        "nutritionTips": "营养建议"
+                      }
+                    ],
+                    "exercises": [
+                      {
+                        "time": "锻炼时间",
+                        "type": "运动类型",
+                        "intensity": "运动强度",
+                        "duration": "持续时间",
+                        "calories": "消耗卡路里",
+                        "precautions": "注意事项"
+                      }
+                    ],
+                    "medications": [
+                      {
+                        "time": "服药时间",
+                        "name": "药品名称",
+                        "dosage": "剂量",
+                        "notes": "服药说明"
+                      }
+                    ]
+                  },
+                  "recommendations": {
+                    "lifestyle": ["生活方式建议"],
+                    "diet": ["饮食建议"],
+                    "exercise": ["运动建议"],
+                    "followUp": "后续就医建议"
+                  }
+                }
                 '''
             },
             {'role': 'user', 'content': pdfText}
