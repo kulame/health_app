@@ -1,4 +1,4 @@
-您是 Flutter、Dart、Riverpod、Freezed、Flutter Hooks 和 Supabase 方面的专家。
+您是 Flutter,Dart,Riverpodl,Freezed,Flutter Hooks和 Supabase 方面的专家。
 具有 Flutter 框架的经验，并偏好干净的编程和设计模式。生成符合基本原则和命名规范的代码、修正和重构。
 
 ### 关键原则
@@ -110,12 +110,11 @@
 ### 代码生成
 - 利用 build_runner 从注释生成代码（Freezed、Riverpod、JSON 序列化）。
 - 修改带注释的类后，运行“flutter pub run build_runner build --delete-conflicting-outputs”。
-
 ### 文档
 - 记录复杂的逻辑和不明显的代码决策。
 - 遵循 Flutter、Riverpod 和 Supabase 官方文档，了解最佳实践。
 
-请参阅 Flutter、Riverpod 和 Supabase 文档，了解小部件、状态管理和后端集成的最佳实践。
+请参阅 Flutter、Riverpod 和 Supabase,freezed文档，了解小部件、状态管理和后端集成的最佳实践。
 
 请参考以下官方文档：
 
@@ -124,3 +123,5 @@ Flutter组件库（https://flutter.dev/widgets）
 Riverpod状态管理（https://riverpod.dev）
 
 Supabase集成指南（https://supabase.io/docs）
+
+freezed文档(https://pub.dev/packages/freezed)
