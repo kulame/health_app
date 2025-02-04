@@ -9,22 +9,32 @@ class GptService {
   final Dio _dio = Dio();
   final String _apiKey = dotenv.env['GPT_API_KEY'] ?? '';
   final String _apiEndpoint = dotenv.env['GPT_API_ENDPOINT'] ?? '';
-  final String _model = dotenv.env['GPT_MODEL'] ?? 'gpt-4o';
+  final String _model = dotenv.env['GPT_MODEL'] ?? 'gpt-4';
   final int _maxTokens = int.parse(dotenv.env['GPT_MAX_TOKENS'] ?? '2000');
   final double _temperature =
       double.parse(dotenv.env['GPT_TEMPERATURE'] ?? '0.3');
 
   Future<String> extractTextFromPdf(File pdfFile) async {
-    final PdfDocument document =
-        PdfDocument(inputBytes: await pdfFile.readAsBytes());
-    String text = PdfTextExtractor(document).extractText();
+    final document = PdfDocument(inputBytes: await pdfFile.readAsBytes());
+    final text = PdfTextExtractor(document).extractText();
     document.dispose();
     return text;
   }
 
   Future<Map<String, dynamic>> analyzeHealthReport(String pdfText) async {
     try {
-      final response = await _dio.post(
+      final response = await _sendGptRequest(pdfText);
+      final content =
+          _cleanJsonString(response.data['choices'][0]['message']['content']);
+      final result = jsonDecode(content) as Map<String, dynamic>;
+      _validateResponse(result);
+      return result;
+    } catch (e) {
+      throw Exception('分析报告失败: $e');
+    }
+  }
+
+  Future<Response> _sendGptRequest(String pdfText) => _dio.post(
         _apiEndpoint,
         options: Options(
           headers: {
@@ -32,69 +42,33 @@ class GptService {
             'Content-Type': 'application/json',
           },
         ),
-        data: {
-          'model': _model,
-          'messages': [
-            {
-              'role': 'system',
-              'content': '''你是一个医疗康复专家。请分析以下医疗报告，并制定一天的康复计划。
-                请严格按照以下JSON格式返回，不要添加任何其他内容：
-                {
-                  "dailyPlan": {
-                    "morningRoutine": [
-                      {
-                        "time": "HH:MM AM/PM",
-                        "activity": "活动名称",
-                        "calories": "± XXX Kcal"
-                      }
-                    ],
-                    "exercises": [
-                      {
-                        "time": "HH:MM AM/PM",
-                        "type": "运动名称",
-                        "calories": "- XXX Kcal"
-                      }
-                    ],
-                    "meals": [
-                      {
-                        "time": "HH:MM AM/PM",
-                        "type": "餐类型",
-                        "calories": "+ XXX Kcal",
-                        "menu": ["食物1", "食物2", "食物3"]
-                      }
-                    ]
-                  }
-                }'''
-            },
-            {'role': 'user', 'content': pdfText}
-          ],
-          'temperature': 0.3,
-        },
+        data: _buildRequestData(pdfText),
       );
 
-      print('GPT API Response: ${response.data}');
+  Map<String, dynamic> _buildRequestData(String pdfText) => {
+        'model': _model,
+        'messages': [
+          {
+            'role': 'system',
+            'content': _systemPrompt,
+          },
+          {
+            'role': 'user',
+            'content': pdfText,
+          },
+        ],
+        'temperature': 0.3,
+      };
 
-      if (response.data['error'] != null) {
-        throw Exception(response.data['error']['message']);
+  String get _systemPrompt => '''你是一个医疗康复专家。请分析以下医疗报告，并制定一天的康复计划。
+    请严格按照以下JSON格式返回，不要添加任何其他内容：
+    {
+      "dailyPlan": {
+        "morningRoutine": [{"time": "HH:MM AM/PM", "activity": "活动名称", "calories": "± XXX Kcal"}],
+        "exercises": [{"time": "HH:MM AM/PM", "type": "运动名称", "calories": "- XXX Kcal"}],
+        "meals": [{"time": "HH:MM AM/PM", "type": "餐食类型", "calories": "+ XXX Kcal", "menu": ["食物1", "食物2"]}]
       }
-
-      String content =
-          response.data['choices'][0]['message']['content'] as String;
-
-      // 清理 JSON 字符串
-      content = _cleanJsonString(content);
-      print('Cleaned content: $content');
-
-      final result = jsonDecode(content) as Map<String, dynamic>;
-      print('Parsed Result: $result');
-
-      _validateResponse(result);
-      return result;
-    } catch (e, stack) {
-      print('Error in analyzeHealthReport: $e\n$stack');
-      throw Exception('分析报告失败: $e');
-    }
-  }
+    }''';
 
   String _cleanJsonString(String input) {
     // 移除 JSON 代码块标记

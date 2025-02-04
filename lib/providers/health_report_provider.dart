@@ -18,14 +18,10 @@ class HealthReport extends _$HealthReport {
     try {
       final gptService = GptService();
       final pdfText = await gptService.extractTextFromPdf(file);
-      print('Extracted PDF text: $pdfText');
-
       final rawResponse = await gptService.analyzeHealthReport(pdfText);
       final activities = _parseActivities(rawResponse);
-
       state = AsyncValue.data(activities);
     } catch (e, st) {
-      print('Error in analyzeReport: $e\n$st');
       state = AsyncValue.error(e, st);
     }
   }
@@ -34,42 +30,46 @@ class HealthReport extends _$HealthReport {
     final activities = <ActivityItem>[];
     final dailyPlan = rawData['dailyPlan'] as Map<String, dynamic>;
 
-    // 处理晨间活动
-    for (var routine in dailyPlan['morningRoutine'] as List) {
-      activities.add(ActivityItem(
-        title: routine['activity'] as String,
-        time: routine['time'] as String,
-        kcal: routine['calories'] as String,
-        type: ActivityType.activity,
-      ));
-    }
-
-    // 处理运动
-    for (var exercise in dailyPlan['exercises'] as List) {
-      activities.add(ActivityItem(
-        title: exercise['type'] as String,
-        time: exercise['time'] as String,
-        kcal: exercise['calories'] as String,
-        type: ActivityType.activity,
-      ));
-    }
-
-    // 处理餐食
-    for (var meal in dailyPlan['meals'] as List) {
-      activities.add(ActivityItem(
-        title: meal['type'] as String,
-        time: meal['time'] as String,
-        kcal: meal['calories'] as String,
-        type: ActivityType.meal,
-        mealItems: (meal['menu'] as List)
-            .map((item) => MealItem(
-                  name: item as String,
-                  kcal: meal['calories'] as String,
-                ))
-            .toList(),
-      ));
-    }
+    activities
+      ..addAll(_parseMorningRoutines(dailyPlan['morningRoutine'] as List))
+      ..addAll(_parseExercises(dailyPlan['exercises'] as List))
+      ..addAll(_parseMeals(dailyPlan['meals'] as List));
 
     return activities;
   }
+
+  List<ActivityItem> _parseMorningRoutines(List routines) => routines
+      .map((routine) => ActivityItem(
+            title: routine['activity'] as String,
+            time: routine['time'] as String,
+            kcal: routine['calories'] as String,
+            type: ActivityType.activity,
+          ))
+      .toList();
+
+  List<ActivityItem> _parseExercises(List exercises) => exercises
+      .map((exercise) => ActivityItem(
+            title: exercise['type'] as String,
+            time: exercise['time'] as String,
+            kcal: exercise['calories'] as String,
+            type: ActivityType.activity,
+          ))
+      .toList();
+
+  List<ActivityItem> _parseMeals(List meals) => meals
+      .map((meal) => ActivityItem(
+            title: meal['type'] as String,
+            time: meal['time'] as String,
+            kcal: meal['calories'] as String,
+            type: ActivityType.meal,
+            mealItems: _parseMealItems(meal),
+          ))
+      .toList();
+
+  List<MealItem> _parseMealItems(dynamic meal) => (meal['menu'] as List)
+      .map((item) => MealItem(
+            name: item as String,
+            kcal: meal['calories'] as String,
+          ))
+      .toList();
 }
