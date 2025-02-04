@@ -1,16 +1,36 @@
-# health_app
+# Health App - AI 健康助手
 
-A new Flutter project.
+一个基于 Flutter 开发的智能健康管理应用，集成了 GPT-4 人工智能，可以分析健康报告并提供个性化的健康建议。
 
-## Getting Started
+## 功能特点
 
-This project is a starting point for a Flutter application.
+- 📊 健康报告分析
+  - PDF 格式健康报告上传和解析
+  - AI 智能分析报告内容
+  - 生成每日活动计划
 
-A few resources to get you started if this is your first Flutter project:
+- 🤖 AI 智能助手
+  - 实时对话功能
+  - 健康相关问题咨询
+  - 支持快捷键操作
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- 📅 活动管理
+  - 晨间活动规划
+  - 运动计划安排
+  - 饮食建议和卡路里计算
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- 💫 用户体验
+  - 响应式设计
+  - 深色主题
+  - 流畅的动画效果
+
+## 技术栈
+
+- **Flutter & Dart** - 跨平台开发框架
+- **Riverpod** - 状态管理
+- **Freezed** - 数据模型生成
+- **OpenAI GPT-4** - AI 对话和分析
+- **Dio** - 网络请求
+- **SyncFusion PDF** - PDF 文件处理
+
+## 项目结构
