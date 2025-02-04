@@ -62,9 +62,15 @@ class Home extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildDateText(),
-              const SizedBox(height: 20),
-              _buildWeekDays(),
+              Expanded(
+                flex: 1,
+                child: _buildDateText(),
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                flex: 1,
+                child: _buildWeekDays(),
+              ),
             ],
           ),
         ),
@@ -76,13 +82,14 @@ class Home extends ConsumerWidget {
       );
 
   Widget _buildDateText() => Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             DateFormat('EEEE').format(DateTime.now()),
             style: _buildTextStyle(14, false),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 2),
           Text(
             DateFormat('MMMM d, y').format(DateTime.now()),
             style: _buildTextStyle(11, true),
@@ -155,36 +162,47 @@ class Home extends ConsumerWidget {
   Widget _buildWeekDays() {
     final now = DateTime.now();
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
-    return Row(
-      children:
-          List.generate(7, (index) => _buildDayItem(weekStart, index, now)),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children:
+            List.generate(7, (index) => _buildDayItem(weekStart, index, now)),
+      ),
     );
   }
 
   Widget _buildDayItem(DateTime weekStart, int index, DateTime now) {
     final date = weekStart.add(Duration(days: index));
     final isToday = date.day == now.day;
-    return Padding(
-      padding: const EdgeInsets.only(right: 14.0),
-      child: Container(
-        width: 48,
-        height: 44,
-        decoration: BoxDecoration(
-          color: isToday
-              ? const Color.fromRGBO(21, 17, 20, 1)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: _buildDayContent(date),
+    return Container(
+      margin: const EdgeInsets.only(right: 8.0),
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color:
+            isToday ? const Color.fromRGBO(21, 17, 20, 1) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
       ),
+      child: _buildDayContent(date),
     );
   }
 
   Widget _buildDayContent(DateTime date) => Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text('${date.day}', style: _buildTextStyle(14, false)),
-          Text(DateFormat('E').format(date), style: _buildTextStyle(11, true)),
+          Text(
+            '${date.day}',
+            style: _buildTextStyle(14, false),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            DateFormat('E').format(date),
+            style: _buildTextStyle(11, true),
+            textAlign: TextAlign.center,
+          ),
         ],
       );
 
