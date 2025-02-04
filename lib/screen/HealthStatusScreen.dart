@@ -5,6 +5,7 @@ import 'Home.dart';
 import '../services/gpt_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/health_report_provider.dart';
+import 'dart:developer' as developer;
 
 class HealthStatusScreen extends ConsumerStatefulWidget {
   const HealthStatusScreen({super.key});
@@ -21,12 +22,17 @@ class _HealthStatusScreenState extends ConsumerState<HealthStatusScreen> {
   Widget build(BuildContext context) {
     // 监听 healthReport 状态
     ref.listen(healthReportProvider, (previous, next) {
+      developer.log('healthReport 状态变化');
       next.whenData((activities) {
         if (activities.isNotEmpty) {
+          developer.log('解析到活动数据，数量: ${activities.length}');
+          developer.log('准备导航到 Home 页面');
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const Home()),
           );
+        } else {
+          developer.log('没有解析到活动数据');
         }
       });
     });
@@ -94,7 +100,7 @@ class _HealthStatusScreenState extends ConsumerState<HealthStatusScreen> {
       );
 
   Widget _buildUploadSection() => GestureDetector(
-        onTap: _isUploading ? null : _handleFileUpload,
+        onTap: _isUploading ? null : _pickAndAnalyzeFile,
         child: Container(
           width: double.infinity,
           height: 159,
@@ -156,7 +162,7 @@ class _HealthStatusScreenState extends ConsumerState<HealthStatusScreen> {
       );
 
   Widget _buildNextButton() => GestureDetector(
-        onTap: _isUploading ? null : _handleFileUpload,
+        onTap: _isUploading ? null : _pickAndAnalyzeFile,
         child: Container(
           width: double.infinity,
           height: 58,
@@ -184,42 +190,40 @@ class _HealthStatusScreenState extends ConsumerState<HealthStatusScreen> {
         fontWeight: weight ?? FontWeight.normal,
       );
 
-  Future<void> _handleFileUpload() async {
+  Future<void> _pickAndAnalyzeFile() async {
     try {
-      final result = await _pickFile();
-      if (result == null) return;
-
-      setState(() {
-        _fileName = result.files.single.name;
-        _isUploading = true;
-      });
-
-      await _processFile(result);
-
-      setState(() => _isUploading = false);
-    } catch (e) {
-      _handleError(e);
-    }
-  }
-
-  Future<FilePickerResult?> _pickFile() => FilePicker.platform.pickFiles(
+      developer.log('开始选择文件');
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
       );
 
-  Future<void> _processFile(FilePickerResult result) async {
-    if (result.files.single.path != null) {
-      final file = File(result.files.single.path!);
-      await ref.read(healthReportProvider.notifier).analyzeReport(file);
-    }
-  }
+      if (result != null) {
+        developer.log('文件已选择: ${result.files.first.name}');
+        setState(() {
+          _fileName = result.files.first.name;
+          _isUploading = true;
+        });
 
-  void _handleError(Object e) {
-    setState(() => _isUploading = false);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('文件处理失败：$e')),
-      );
+        final file = File(result.files.first.path!);
+        developer.log('开始分析健康报告');
+
+        await ref.read(healthReportProvider.notifier).analyzeReport(file);
+        developer.log('健康报告分析完成');
+      } else {
+        developer.log('用户取消了文件选择');
+      }
+    } catch (e, st) {
+      developer.log('文件处理出错', error: e, stackTrace: st);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('处理文件时出错: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
     }
   }
 }
