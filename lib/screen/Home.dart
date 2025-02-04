@@ -282,11 +282,11 @@ class _HomeState extends ConsumerState<Home> {
       );
 
   void _showChatDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => const ChatDialog(),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => const ChatDialog(),
+      ),
     );
   }
 
