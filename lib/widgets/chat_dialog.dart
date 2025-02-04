@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/gpt_service_provider.dart';
+import 'package:flutter/services.dart';
 
 class ChatDialog extends ConsumerStatefulWidget {
   const ChatDialog({super.key});
@@ -115,8 +116,18 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
-              child: Container(
-                constraints: const BoxConstraints(maxHeight: 100),
+              child: Focus(
+                onKeyEvent: (node, event) {
+                  if (event is KeyDownEvent &&
+                      event.logicalKey == LogicalKeyboardKey.enter &&
+                      !HardwareKeyboard.instance.isShiftPressed) {
+                    if (!_isLoading) {
+                      _handleSend();
+                    }
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
                 child: TextField(
                   controller: _controller,
                   maxLines: null,
@@ -130,6 +141,14 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
                       vertical: 8,
                     ),
                   ),
+                  onSubmitted: (_) => _handleSend(),
+                  textInputAction: TextInputAction.send,
+                  onEditingComplete: () {
+                    if (!_isLoading) {
+                      _handleSend();
+                    }
+                  },
+                  keyboardType: TextInputType.multiline,
                 ),
               ),
             ),
