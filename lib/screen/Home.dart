@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../providers/selected_date_provider.dart';
 import '../providers/database_provider.dart';
+import '../providers/day_health_report_provider.dart';
 
 class Home extends ConsumerStatefulWidget {
   const Home({super.key});
@@ -19,9 +20,9 @@ class Home extends ConsumerStatefulWidget {
 class _HomeState extends ConsumerState<Home> {
   @override
   Widget build(BuildContext context) {
-    final healthReport = ref.watch(healthReportProvider);
+    final dayHealthReport = ref.watch(dayHealthReportProvider);
 
-    return healthReport.when(
+    return dayHealthReport.when(
       data: (activities) => _buildHomeScreen(context, activities),
       loading: () => _buildLoadingScreen(),
       error: (error, stack) => _buildErrorScreen(error),
@@ -312,12 +313,6 @@ class _HomeState extends ConsumerState<Home> {
       );
 
   void _loadHealthPlan(DateTime date) async {
-    final db = ref.read(databaseProvider);
-    final plan = await db.getHealthPlanByDate(date);
-    if (plan != null) {
-      setState(() {
-        // 更新相关状态
-      });
-    }
+    await ref.read(dayHealthReportProvider.notifier).loadDayHealthPlan(date);
   }
 }

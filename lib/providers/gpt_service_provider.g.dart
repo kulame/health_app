@@ -6,7 +6,7 @@ part of 'gpt_service_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$gptServiceHash() => r'a336b03fd638af2e7c364a03a71b2b80fefe4ce3';
+String _$gptServiceHash() => r'784e8cd76b85186fd8a257d244b638f9329087a7';
 
 /// See also [gptService].
 @ProviderFor(gptService)
