@@ -14,7 +14,10 @@ part 'day_health_report_provider.g.dart';
 class DayHealthReport extends _$DayHealthReport {
   @override
   AsyncValue<List<ActivityItem>> build() {
-    developer.log('初始化 DayHealthReport provider');
+    ref.listen(healthReportProvider, (previous, next) {
+      developer.log('HealthReport 发生变化: $next');
+    });
+
     return const AsyncValue.data([]);
   }
 
@@ -35,19 +38,17 @@ class DayHealthReport extends _$DayHealthReport {
         developer.log('解析完成，活动数量: ${activities.length}');
         state = AsyncValue.data(activities);
       } else {
-        developer.log('数据库中没有找到记录，尝试从 HealthReport 获取数据');
+        developer.log('数据库中没有找到记录，获取 HealthReport 数据');
         final healthReport = ref.read(healthReportProvider);
 
+        developer.log('HealthReport 当前状态: $healthReport');
         await healthReport.when(
           data: (activities) async {
-            developer.log('获取到 HealthReport 数据状态');
+            developer.log('获取到 HealthReport 数据，长度: ${activities.length}');
             if (activities.isNotEmpty) {
-              developer.log('从 HealthReport 获取到数据，活动数量: ${activities.length}');
-              developer.log('开始保存到数据库并更新状态');
+              developer.log('从 HealthReport 获取到有效数据');
               await _saveToDatabaseAndUpdateState(activities, date);
-              developer.log('保存和更新完成');
             } else {
-              developer.log('HealthReport 中数据为空');
               state = const AsyncValue.data([]);
             }
           },
