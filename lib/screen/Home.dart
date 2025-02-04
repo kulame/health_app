@@ -19,6 +19,22 @@ class Home extends ConsumerStatefulWidget {
 
 class _HomeState extends ConsumerState<Home> {
   @override
+  void initState() {
+    super.initState();
+    // 使用 addPostFrameCallback 确保在构建完成后执行
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeHealthPlan();
+    });
+  }
+
+  Future<void> _initializeHealthPlan() async {
+    final today = DateTime.now();
+    // 移除时分秒，只保留年月日
+    final date = DateTime(today.year, today.month, today.day);
+    await ref.read(dayHealthReportProvider.notifier).loadDayHealthPlan(date);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final dayHealthReport = ref.watch(dayHealthReportProvider);
 
@@ -313,6 +329,10 @@ class _HomeState extends ConsumerState<Home> {
       );
 
   void _loadHealthPlan(DateTime date) async {
-    await ref.read(dayHealthReportProvider.notifier).loadDayHealthPlan(date);
+    // 移除时分秒，只保留年月日
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    await ref
+        .read(dayHealthReportProvider.notifier)
+        .loadDayHealthPlan(normalizedDate);
   }
 }
