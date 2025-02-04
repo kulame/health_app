@@ -20,9 +20,9 @@ class $DailyHealthPlansTable extends DailyHealthPlans
           GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
   static const VerificationMeta _dateMeta = const VerificationMeta('date');
   @override
-  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
       'date', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _morningRoutineMeta =
       const VerificationMeta('morningRoutine');
   @override
@@ -118,7 +118,7 @@ class $DailyHealthPlansTable extends DailyHealthPlans
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       date: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}date'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}date'])!,
       morningRoutine: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}morning_routine'])!,
       exercises: attachedDatabase.typeMapping
@@ -140,7 +140,7 @@ class $DailyHealthPlansTable extends DailyHealthPlans
 
 class DailyHealthPlan extends DataClass implements Insertable<DailyHealthPlan> {
   final int id;
-  final DateTime date;
+  final String date;
   final String morningRoutine;
   final String exercises;
   final String meals;
@@ -158,7 +158,7 @@ class DailyHealthPlan extends DataClass implements Insertable<DailyHealthPlan> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['date'] = Variable<DateTime>(date);
+    map['date'] = Variable<String>(date);
     map['morning_routine'] = Variable<String>(morningRoutine);
     map['exercises'] = Variable<String>(exercises);
     map['meals'] = Variable<String>(meals);
@@ -184,7 +184,7 @@ class DailyHealthPlan extends DataClass implements Insertable<DailyHealthPlan> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return DailyHealthPlan(
       id: serializer.fromJson<int>(json['id']),
-      date: serializer.fromJson<DateTime>(json['date']),
+      date: serializer.fromJson<String>(json['date']),
       morningRoutine: serializer.fromJson<String>(json['morningRoutine']),
       exercises: serializer.fromJson<String>(json['exercises']),
       meals: serializer.fromJson<String>(json['meals']),
@@ -197,7 +197,7 @@ class DailyHealthPlan extends DataClass implements Insertable<DailyHealthPlan> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'date': serializer.toJson<DateTime>(date),
+      'date': serializer.toJson<String>(date),
       'morningRoutine': serializer.toJson<String>(morningRoutine),
       'exercises': serializer.toJson<String>(exercises),
       'meals': serializer.toJson<String>(meals),
@@ -208,7 +208,7 @@ class DailyHealthPlan extends DataClass implements Insertable<DailyHealthPlan> {
 
   DailyHealthPlan copyWith(
           {int? id,
-          DateTime? date,
+          String? date,
           String? morningRoutine,
           String? exercises,
           String? meals,
@@ -269,7 +269,7 @@ class DailyHealthPlan extends DataClass implements Insertable<DailyHealthPlan> {
 
 class DailyHealthPlansCompanion extends UpdateCompanion<DailyHealthPlan> {
   final Value<int> id;
-  final Value<DateTime> date;
+  final Value<String> date;
   final Value<String> morningRoutine;
   final Value<String> exercises;
   final Value<String> meals;
@@ -286,7 +286,7 @@ class DailyHealthPlansCompanion extends UpdateCompanion<DailyHealthPlan> {
   });
   DailyHealthPlansCompanion.insert({
     this.id = const Value.absent(),
-    required DateTime date,
+    required String date,
     required String morningRoutine,
     required String exercises,
     required String meals,
@@ -298,7 +298,7 @@ class DailyHealthPlansCompanion extends UpdateCompanion<DailyHealthPlan> {
         meals = Value(meals);
   static Insertable<DailyHealthPlan> custom({
     Expression<int>? id,
-    Expression<DateTime>? date,
+    Expression<String>? date,
     Expression<String>? morningRoutine,
     Expression<String>? exercises,
     Expression<String>? meals,
@@ -318,7 +318,7 @@ class DailyHealthPlansCompanion extends UpdateCompanion<DailyHealthPlan> {
 
   DailyHealthPlansCompanion copyWith(
       {Value<int>? id,
-      Value<DateTime>? date,
+      Value<String>? date,
       Value<String>? morningRoutine,
       Value<String>? exercises,
       Value<String>? meals,
@@ -342,7 +342,7 @@ class DailyHealthPlansCompanion extends UpdateCompanion<DailyHealthPlan> {
       map['id'] = Variable<int>(id.value);
     }
     if (date.present) {
-      map['date'] = Variable<DateTime>(date.value);
+      map['date'] = Variable<String>(date.value);
     }
     if (morningRoutine.present) {
       map['morning_routine'] = Variable<String>(morningRoutine.value);
@@ -392,7 +392,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$DailyHealthPlansTableCreateCompanionBuilder
     = DailyHealthPlansCompanion Function({
   Value<int> id,
-  required DateTime date,
+  required String date,
   required String morningRoutine,
   required String exercises,
   required String meals,
@@ -402,7 +402,7 @@ typedef $$DailyHealthPlansTableCreateCompanionBuilder
 typedef $$DailyHealthPlansTableUpdateCompanionBuilder
     = DailyHealthPlansCompanion Function({
   Value<int> id,
-  Value<DateTime> date,
+  Value<String> date,
   Value<String> morningRoutine,
   Value<String> exercises,
   Value<String> meals,
@@ -422,7 +422,7 @@ class $$DailyHealthPlansTableFilterComposer
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<DateTime> get date => $composableBuilder(
+  ColumnFilters<String> get date => $composableBuilder(
       column: $table.date, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get morningRoutine => $composableBuilder(
@@ -454,7 +454,7 @@ class $$DailyHealthPlansTableOrderingComposer
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<DateTime> get date => $composableBuilder(
+  ColumnOrderings<String> get date => $composableBuilder(
       column: $table.date, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get morningRoutine => $composableBuilder(
@@ -486,7 +486,7 @@ class $$DailyHealthPlansTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<DateTime> get date =>
+  GeneratedColumn<String> get date =>
       $composableBuilder(column: $table.date, builder: (column) => column);
 
   GeneratedColumn<String> get morningRoutine => $composableBuilder(
@@ -533,7 +533,7 @@ class $$DailyHealthPlansTableTableManager extends RootTableManager<
               $$DailyHealthPlansTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
-            Value<DateTime> date = const Value.absent(),
+            Value<String> date = const Value.absent(),
             Value<String> morningRoutine = const Value.absent(),
             Value<String> exercises = const Value.absent(),
             Value<String> meals = const Value.absent(),
@@ -551,7 +551,7 @@ class $$DailyHealthPlansTableTableManager extends RootTableManager<
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
-            required DateTime date,
+            required String date,
             required String morningRoutine,
             required String exercises,
             required String meals,

@@ -6,7 +6,7 @@ part of 'day_health_report_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$dayHealthReportHash() => r'6e84268635d7a7c84d80f0fd99e7aae69cba47da';
+String _$dayHealthReportHash() => r'1bc1fb8adb34a20e1eea034b5bd803a8727a3dc3';
 
 /// See also [DayHealthReport].
 @ProviderFor(DayHealthReport)
