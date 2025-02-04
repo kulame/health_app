@@ -27,12 +27,23 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
           color: Color.fromRGBO(21, 17, 20, 1),
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(child: _buildMessageList()),
-            _buildInputArea(),
-          ],
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Column(
+                      children: _messages.map((msg) => msg).toList(),
+                    ),
+                  ),
+                ),
+              ),
+              _buildInputArea(),
+            ],
+          ),
         ),
       );
 
@@ -63,12 +74,6 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
             ),
           ],
         ),
-      );
-
-  Widget _buildMessageList() => ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _messages.length,
-        itemBuilder: (context, index) => _messages[index],
       );
 
   Widget _buildInputArea() => Container(

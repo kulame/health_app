@@ -32,17 +32,21 @@ class Home extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 56, 33, 50),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          children: [
-            const SizedBox(height: 45),
-            _buildDateHeader(),
-            const SizedBox(height: 20),
-            ...(activities?.map(_buildActivityItem).toList() ?? []),
-            const SizedBox(height: 20),
-            _buildAskAiButton(context),
-            const SizedBox(height: 20),
-          ],
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              children: [
+                const SizedBox(height: 45),
+                _buildDateHeader(),
+                const SizedBox(height: 20),
+                ...(activities?.map(_buildActivityItem).toList() ?? []),
+                const SizedBox(height: 20),
+                _buildAskAiButton(context),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
         ),
       ),
     );
