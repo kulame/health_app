@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/database_provider.dart';
 
 class GptService {
   final Dio _dio = Dio();
@@ -13,6 +15,9 @@ class GptService {
   final int _maxTokens = int.parse(dotenv.env['GPT_MAX_TOKENS'] ?? '2000');
   final double _temperature =
       double.parse(dotenv.env['GPT_TEMPERATURE'] ?? '0.3');
+  final Ref _ref;
+
+  GptService(this._ref);
 
   Future<String> extractTextFromPdf(File pdfFile) async {
     final document = PdfDocument(inputBytes: await pdfFile.readAsBytes());
@@ -122,6 +127,23 @@ class GptService {
       return response.data['choices'][0]['message']['content'] as String;
     } catch (e) {
       throw Exception('聊天失败: $e');
+    }
+  }
+
+  Future<void> saveHealthPlan(String response, DateTime date) async {
+    try {
+      final jsonResponse = jsonDecode(response);
+      final plan = jsonResponse['dailyPlan'];
+
+      final db = _ref.read(databaseProvider);
+      await db.insertOrUpdateHealthPlan(
+        date: date,
+        morningRoutine: jsonEncode(plan['morningRoutine']),
+        exercises: jsonEncode(plan['exercises']),
+        meals: jsonEncode(plan['meals']),
+      );
+    } catch (e) {
+      print('保存健康计划失败: $e');
     }
   }
 }

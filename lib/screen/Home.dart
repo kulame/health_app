@@ -7,6 +7,7 @@ import '../widgets/chat_dialog.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../providers/selected_date_provider.dart';
+import '../providers/database_provider.dart';
 
 class Home extends ConsumerStatefulWidget {
   const Home({super.key});
@@ -180,7 +181,10 @@ class _HomeState extends ConsumerState<Home> {
           date.day == now.day;
 
       return GestureDetector(
-        onTap: () => ref.read(selectedDateProvider.notifier).selectDate(date),
+        onTap: () {
+          ref.read(selectedDateProvider.notifier).selectDate(date);
+          _loadHealthPlan(date);
+        },
         child: Container(
           margin: const EdgeInsets.only(right: 8.0),
           width: 44,
@@ -306,4 +310,14 @@ class _HomeState extends ConsumerState<Home> {
           ),
         ),
       );
+
+  void _loadHealthPlan(DateTime date) async {
+    final db = ref.read(databaseProvider);
+    final plan = await db.getHealthPlanByDate(date);
+    if (plan != null) {
+      setState(() {
+        // 更新相关状态
+      });
+    }
+  }
 }

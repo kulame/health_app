@@ -5,6 +5,7 @@ import '../models/activity_item.dart';
 import 'activity_provider.dart';
 import 'dart:developer' as developer;
 import 'dart:convert';
+import '../providers/gpt_service_provider.dart';
 
 part 'health_report_provider.g.dart';
 
@@ -16,7 +17,7 @@ class HealthReport extends _$HealthReport {
   Future<void> analyzeReport(File file) async {
     state = const AsyncValue.loading();
     try {
-      final gptService = GptService();
+      final gptService = ref.read(gptServiceProvider);
       final pdfText = await gptService.extractTextFromPdf(file);
       final rawResponse = await gptService.analyzeHealthReport(pdfText);
       final activities = _parseActivities(rawResponse);
