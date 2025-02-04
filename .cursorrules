@@ -26,14 +26,14 @@
 - 使用适当的本地化技术
 
 ### 项目结构
-- screen 文件夹存放页面
-- widgets 文件夹存放小部件
-- providers 文件夹存放状态管理
-- utils 文件夹存放工具函数
-- models 文件夹存放数据模型
-- services 文件夹存放服务
+- lib/screen 文件夹存放页面
+- lib/widgets 文件夹存放小部件
+- lib/providers 文件夹存放状态管理
+- lib/utils 文件夹存放工具函数
+- lib/models 文件夹存放数据模型
+- lib/services 文件夹存放服务
+- lib/data  持久层代码
 - assets 文件夹存放资源
-
 
 ### 错误处理和验证
 - 使用 SelectableText.rich 而不是 SnackBars 在视图中实现错误处理。
@@ -79,9 +79,6 @@
 14. 始终编写超级干净的代码 
 15. 如果您需要从 api 或任何其他具有新功能的来源获取数据，请为该功能创建一个新的存储库文件夹（如果尚未创建）
 
-
-
-
 ### UI 和样式
 - 使用 Flutter 的内置小部件并创建自定义小部件。
 - 使用 LayoutBuilder 或 MediaQuery 实现响应式设计。
@@ -95,6 +92,11 @@
   - 对于不变的数据使用 readonly。
   - 对于不变的字面量使用 const。
 
+### 数据库约定
+- 在数据库表中包含 createdAt、updatedAt 和 isDeleted 字段。
+- 对模型使用 @JsonSerializable(fieldRename: FieldRename.snake)。
+- 对只读字段实现 @JsonKey(includeFromJson: true, includeToJson: false)。
+
 ### 类
 - 遵循 SOLID 原则。
 - 优先使用组合而非继承。
@@ -105,7 +107,6 @@
   - 属性少于 10 个。
 
 ### 异常
-
 - 使用异常处理您不期望的错误。
 - 如果捕获异常，应该是为了：
   - 修复预期的问题。
@@ -127,6 +128,7 @@
 - 实现适当的错误边界
 - 使用适当的性能优化技术
 - 遵循适当的可访问性指南
+- 使用 getIt 管理依赖项
 
 ### 函数
 - 在此上下文中，函数的定义同样适用于方法。
@@ -156,6 +158,7 @@
 ### 代码生成
 - 利用 build_runner 从注释生成代码（Freezed、Riverpod、JSON 序列化）。
 - 修改带注释的类后，运行“flutter pub run build_runner build --delete-conflicting-outputs”。
+
 ### 文档
 - 记录复杂的逻辑和不明显的代码决策。
 - 遵循 Flutter、Riverpod 和 Supabase 官方文档，了解最佳实践。
