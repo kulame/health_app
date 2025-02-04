@@ -18,34 +18,48 @@ class _HealthStatusScreenState extends ConsumerState<HealthStatusScreen> {
   bool _isUploading = false;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: const Color.fromRGBO(21, 17, 20, 1),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildBackButton(),
-                  const SizedBox(height: 5),
-                  _buildStatusText(),
-                  const SizedBox(height: 20),
-                  _buildTitle(),
-                  const SizedBox(height: 10),
-                  _buildSubtitle(),
-                  const SizedBox(height: 20),
-                  _buildUploadSection(),
-                  const SizedBox(height: 20),
-                  _buildContextSection(),
-                  const SizedBox(height: 20),
-                  _buildNextButton(),
-                ],
-              ),
+  Widget build(BuildContext context) {
+    // 监听 healthReport 状态
+    ref.listen(healthReportProvider, (previous, next) {
+      next.whenData((activities) {
+        if (activities.isNotEmpty) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const Home()),
+          );
+        }
+      });
+    });
+
+    return Scaffold(
+      backgroundColor: const Color.fromRGBO(21, 17, 20, 1),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildBackButton(),
+                const SizedBox(height: 5),
+                _buildStatusText(),
+                const SizedBox(height: 20),
+                _buildTitle(),
+                const SizedBox(height: 10),
+                _buildSubtitle(),
+                const SizedBox(height: 20),
+                _buildUploadSection(),
+                const SizedBox(height: 20),
+                _buildContextSection(),
+                const SizedBox(height: 20),
+                _buildNextButton(),
+              ],
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 
   Widget _buildBackButton() => Container(
         width: 37,
