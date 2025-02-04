@@ -6,12 +6,18 @@ import '../providers/health_report_provider.dart';
 import '../widgets/chat_dialog.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import '../providers/selected_date_provider.dart';
 
-class Home extends ConsumerWidget {
+class Home extends ConsumerStatefulWidget {
   const Home({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<Home> createState() => _HomeState();
+}
+
+class _HomeState extends ConsumerState<Home> {
+  @override
+  Widget build(BuildContext context) {
     final healthReport = ref.watch(healthReportProvider);
 
     return healthReport.when(
@@ -162,6 +168,42 @@ class Home extends ConsumerWidget {
   Widget _buildWeekDays() {
     final now = DateTime.now();
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
+
+    Widget _buildDayItem(DateTime weekStart, int index, DateTime now) {
+      final date = weekStart.add(Duration(days: index));
+      final selectedDate = ref.watch(selectedDateProvider);
+      final isSelected = date.year == selectedDate.year &&
+          date.month == selectedDate.month &&
+          date.day == selectedDate.day;
+      final isToday = date.year == now.year &&
+          date.month == now.month &&
+          date.day == now.day;
+
+      return GestureDetector(
+        onTap: () => ref.read(selectedDateProvider.notifier).selectDate(date),
+        child: Container(
+          margin: const EdgeInsets.only(right: 8.0),
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color.fromRGBO(37, 195, 166, 1)
+                : isToday
+                    ? const Color.fromRGBO(21, 17, 20, 1)
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: isSelected
+                ? Border.all(
+                    color: const Color.fromRGBO(37, 195, 166, 1),
+                    width: 2,
+                  )
+                : null,
+          ),
+          child: _buildDayContent(date),
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -169,22 +211,6 @@ class Home extends ConsumerWidget {
         children:
             List.generate(7, (index) => _buildDayItem(weekStart, index, now)),
       ),
-    );
-  }
-
-  Widget _buildDayItem(DateTime weekStart, int index, DateTime now) {
-    final date = weekStart.add(Duration(days: index));
-    final isToday = date.day == now.day;
-    return Container(
-      margin: const EdgeInsets.only(right: 8.0),
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color:
-            isToday ? const Color.fromRGBO(21, 17, 20, 1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: _buildDayContent(date),
     );
   }
 
