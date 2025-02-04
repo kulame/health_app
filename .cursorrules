@@ -19,6 +19,21 @@
 - 对简单函数和方法使用箭头语法。
 - 对于单行 getter 和 setter，优先使用表达式主体。
 - 使用尾随逗号以获得​​更好的格式和差异。
+- 使用 Flutter 3.x 功能和 Material 3 设计
+- 通过riverpod保证干净的架构
+- 实现适当的错误处理
+- 遵循特定于平台的设计指南
+- 使用适当的本地化技术
+
+### 项目结构
+- screen 文件夹存放页面
+- widgets 文件夹存放小部件
+- providers 文件夹存放状态管理
+- utils 文件夹存放工具函数
+- models 文件夹存放数据模型
+- services 文件夹存放服务
+- assets 文件夹存放资源
+
 
 ### 错误处理和验证
 - 使用 SelectableText.rich 而不是 SnackBars 在视图中实现错误处理。
@@ -37,7 +52,13 @@
 - 尽可能使用 const 小部件来优化重建。
 - 实现列表视图优化（例如 ListView.builder）。
 - 对静态图像使用 AssetImage，对远程图像使用 cached_network_image。
-- 为 Supabase 操作实现正确的错误处理，包括网络错误。
+- 使用适当的图像缓存
+- 实现适当的列表视图优化
+- 使用适当的构建方法优化
+- 遵循riverpod管理模式
+- 实现适当的内存管理
+- 在需要时使用适当的平台渠道
+- 遵循适当的编译优化技术
 
 ### 关键约定
 1. 使用 GoRouter进行导航和深度链接。
@@ -45,6 +66,21 @@
 3. 首选无状态小部件：
 - 使用 Riverpod 中的 ConsumerWidget 来实现依赖于状态的小部件。
 - 结合 Riverpod 和 Flutter Hooks 时使用 HookConsumerWidget。
+4. 使用适当的空安全实践
+5. 使用 Either 类型实现适当的错误处理
+6. 遵循正确的命名约定
+7. 使用适当的小部件组合
+8. 使用适当的表单验证
+9. 始终使用riverpod进行状态管理，遵循适当的状态管理
+10. 使用适当的资产管理
+11. 遵循适当的测试实践
+12. 添加新包时，运行“flutter pub upgrade --major-versions --tighten”命令以确保您使用的是最新版本的包
+13. 始终尝试不要在视图中放置任何业务逻辑，而是在提供程序中处理它并通过状态管理通知视图进行更新
+14. 始终编写超级干净的代码 
+15. 如果您需要从 api 或任何其他具有新功能的来源获取数据，请为该功能创建一个新的存储库文件夹（如果尚未创建）
+
+
+
 
 ### UI 和样式
 - 使用 Flutter 的内置小部件并创建自定义小部件。
@@ -81,6 +117,16 @@
 - 实现 RefreshIndicator 以实现下拉刷新功能。
 - 在 TextFields 中，设置适当的 textCapitalization、keyboardType 和 textInputAction。
 - 使用 Image.network 时始终包含 errorBuilder。
+- 保持 widget 小而集中
+- 尽可能使用 const 构造函数
+- 使用适当的样式和主题
+- 实现适当的 widget 键
+- 确保每个widget只做一件事
+- 遵循适当的布局原则
+- 使用适当的 widget 生命周期方法
+- 实现适当的错误边界
+- 使用适当的性能优化技术
+- 遵循适当的可访问性指南
 
 ### 函数
 - 在此上下文中，函数的定义同样适用于方法。
