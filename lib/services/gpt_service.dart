@@ -99,4 +99,29 @@ class GptService {
       throw Exception('dailyPlan 缺少必要字段');
     }
   }
+
+  Future<String> chat(String message) async {
+    try {
+      final response = await _dio.post(
+        _apiEndpoint,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $_apiKey',
+            'Content-Type': 'application/json',
+          },
+        ),
+        data: {
+          'model': _model,
+          'messages': [
+            {'role': 'user', 'content': message}
+          ],
+          'temperature': 0.7,
+        },
+      );
+
+      return response.data['choices'][0]['message']['content'] as String;
+    } catch (e) {
+      throw Exception('聊天失败: $e');
+    }
+  }
 }

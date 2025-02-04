@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/activity_provider.dart';
 import '../models/activity_item.dart';
 import '../providers/health_report_provider.dart';
+import '../widgets/chat_dialog.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 
@@ -14,13 +15,14 @@ class Home extends ConsumerWidget {
     final healthReport = ref.watch(healthReportProvider);
 
     return healthReport.when(
-      data: (activities) => _buildHomeScreen(activities),
+      data: (activities) => _buildHomeScreen(context, activities),
       loading: () => _buildLoadingScreen(),
       error: (error, stack) => _buildErrorScreen(error),
     );
   }
 
-  Widget _buildHomeScreen(List<ActivityItem>? activities) {
+  Widget _buildHomeScreen(
+      BuildContext context, List<ActivityItem>? activities) {
     if (activities?.isEmpty ?? true) {
       return const Scaffold(
         body: Center(child: Text('没有健康报告数据')),
@@ -38,7 +40,7 @@ class Home extends ConsumerWidget {
             const SizedBox(height: 20),
             ...(activities?.map(_buildActivityItem).toList() ?? []),
             const SizedBox(height: 20),
-            _buildAskAiButton(),
+            _buildAskAiButton(context),
             const SizedBox(height: 20),
           ],
         ),
@@ -182,14 +184,17 @@ class Home extends ConsumerWidget {
         ],
       );
 
-  Widget _buildAskAiButton() => Container(
-        width: double.infinity,
-        height: 58,
-        decoration: _buildAskAiButtonDecoration(),
-        child: Center(
-          child: Text(
-            'Ask AI',
-            style: _buildAskAiTextStyle(),
+  Widget _buildAskAiButton(BuildContext context) => GestureDetector(
+        onTap: () => _showChatDialog(context),
+        child: Container(
+          width: double.infinity,
+          height: 58,
+          decoration: _buildAskAiButtonDecoration(),
+          child: Center(
+            child: Text(
+              'Ask AI',
+              style: _buildAskAiTextStyle(),
+            ),
           ),
         ),
       );
@@ -227,6 +232,15 @@ class Home extends ConsumerWidget {
             ],
           ).createShader(const Rect.fromLTWH(0.0, 0.0, 50.0, 19.0)),
       );
+
+  void _showChatDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => const ChatDialog(),
+    );
+  }
 
   Widget _buildLoadingScreen() => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
