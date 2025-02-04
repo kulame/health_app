@@ -38,17 +38,28 @@ class DayHealthReport extends _$DayHealthReport {
         developer.log('数据库中没有找到记录，尝试从 HealthReport 获取数据');
         final healthReport = ref.read(healthReportProvider);
 
-        await healthReport.whenData((activities) async {
-          if (activities.isNotEmpty) {
-            developer.log('从 HealthReport 获取到数据，活动数量: ${activities.length}');
-            developer.log('开始保存到数据库并更新状态');
-            await _saveToDatabaseAndUpdateState(activities, date);
-            developer.log('保存和更新完成');
-          } else {
-            developer.log('HealthReport 中没有数据，返回空列表');
-            state = const AsyncValue.data([]);
-          }
-        });
+        await healthReport.when(
+          data: (activities) async {
+            developer.log('获取到 HealthReport 数据状态');
+            if (activities.isNotEmpty) {
+              developer.log('从 HealthReport 获取到数据，活动数量: ${activities.length}');
+              developer.log('开始保存到数据库并更新状态');
+              await _saveToDatabaseAndUpdateState(activities, date);
+              developer.log('保存和更新完成');
+            } else {
+              developer.log('HealthReport 中数据为空');
+              state = const AsyncValue.data([]);
+            }
+          },
+          loading: () {
+            developer.log('HealthReport 正在加载中');
+            state = const AsyncValue.loading();
+          },
+          error: (error, stack) {
+            developer.log('HealthReport 发生错误', error: error, stackTrace: stack);
+            state = AsyncValue.error(error, stack);
+          },
+        );
       }
     } catch (e, st) {
       developer.log('加载健康计划出错', error: e, stackTrace: st);
