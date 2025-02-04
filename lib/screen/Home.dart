@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/activity_provider.dart';
 import '../models/activity_item.dart';
 import '../providers/health_report_provider.dart';
 import '../widgets/chat_dialog.dart';
@@ -21,21 +20,21 @@ class _HomeState extends ConsumerState<Home> {
   @override
   void initState() {
     super.initState();
-    // 使用 addPostFrameCallback 确保在构建完成后执行
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeHealthPlan();
     });
   }
 
   Future<void> _initializeHealthPlan() async {
-    final today = DateTime.now();
-    // 移除时分秒，只保留年月日
-    final date = DateTime(today.year, today.month, today.day);
+    final selectedDate = ref.read(selectedDateProvider);
+    final date =
+        DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
     await ref.read(dayHealthReportProvider.notifier).loadDayHealthPlan(date);
   }
 
   @override
   Widget build(BuildContext context) {
+    final selectedDate = ref.watch(selectedDateProvider);
     final dayHealthReport = ref.watch(dayHealthReportProvider);
 
     return dayHealthReport.when(
@@ -184,12 +183,12 @@ class _HomeState extends ConsumerState<Home> {
       );
 
   Widget _buildWeekDays() {
+    final selectedDate = ref.watch(selectedDateProvider);
     final now = DateTime.now();
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
 
     Widget _buildDayItem(DateTime weekStart, int index, DateTime now) {
       final date = weekStart.add(Duration(days: index));
-      final selectedDate = ref.watch(selectedDateProvider);
       final isSelected = date.year == selectedDate.year &&
           date.month == selectedDate.month &&
           date.day == selectedDate.day;
@@ -329,7 +328,6 @@ class _HomeState extends ConsumerState<Home> {
       );
 
   void _loadHealthPlan(DateTime date) async {
-    // 移除时分秒，只保留年月日
     final normalizedDate = DateTime(date.year, date.month, date.day);
     await ref
         .read(dayHealthReportProvider.notifier)

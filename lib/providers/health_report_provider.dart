@@ -2,7 +2,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'dart:io';
 import '../services/gpt_service.dart';
 import '../models/activity_item.dart';
-import 'activity_provider.dart';
 import 'dart:developer' as developer;
 import 'dart:convert';
 import '../providers/gpt_service_provider.dart';
