@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'Home.dart';
-import '../services/gpt_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/health_report_provider.dart';
 import 'dart:developer' as developer;

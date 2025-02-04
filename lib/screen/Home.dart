@@ -187,7 +187,7 @@ class _HomeState extends ConsumerState<Home> {
     final now = DateTime.now();
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
 
-    Widget _buildDayItem(DateTime weekStart, int index, DateTime now) {
+    Widget buildDayItem(DateTime weekStart, int index, DateTime now) {
       final date = weekStart.add(Duration(days: index));
       final isSelected = date.year == selectedDate.year &&
           date.month == selectedDate.month &&
@@ -229,7 +229,7 @@ class _HomeState extends ConsumerState<Home> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children:
-            List.generate(7, (index) => _buildDayItem(weekStart, index, now)),
+            List.generate(7, (index) => buildDayItem(weekStart, index, now)),
       ),
     );
   }
