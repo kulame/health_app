@@ -7,6 +7,7 @@ import 'dart:convert';
 import '../providers/selected_date_provider.dart';
 import '../providers/day_health_report_provider.dart';
 import '../providers/database_provider.dart';
+import 'dart:developer' as developer;
 
 class ChatDialog extends ConsumerStatefulWidget {
   const ChatDialog({super.key});
@@ -244,22 +245,24 @@ ${plan.meals}
 用户请求：
 ${_controller.text}
 
-请根据用户的请求调整健康计划，返回完整的修改后计划。请使用以下JSON格式：
+请严格按照以下JSON格式返回修改后的完整计划，不要添加任何其他内容或说明：
 {
   "dailyPlan": {
     "morningRoutine": [{"time": "HH:MM AM/PM", "activity": "活动名称", "calories": "± XXX Kcal"}],
     "exercises": [{"time": "HH:MM AM/PM", "type": "运动名称", "calories": "- XXX Kcal"}],
     "meals": [{"time": "HH:MM AM/PM", "type": "餐食类型", "calories": "+ XXX Kcal", "menu": ["食物1", "食物2"]}]
   }
-}
-''';
+}''';
 
       // 4. 发送到 GPT 获取调整建议
       final gptService = ref.read(gptServiceProvider);
       final response = await gptService.chat(prompt);
 
+      // 清理响应文本
+      final cleanedResponse = _cleanJsonResponse(response);
+
       // 5. 保存调整后的计划
-      await gptService.saveHealthPlan(response, selectedDate);
+      await gptService.saveHealthPlan(cleanedResponse, selectedDate);
 
       // 6. 刷新 DayHealthReport
       await ref
@@ -267,7 +270,7 @@ ${_controller.text}
           .loadDayHealthPlan(selectedDate);
 
       // 7. 提取回复消息
-      final jsonResponse = jsonDecode(response);
+      final jsonResponse = jsonDecode(cleanedResponse);
       final summary = _generateSummary(jsonResponse);
 
       setState(() {
@@ -280,12 +283,51 @@ ${_controller.text}
       _controller.clear();
       _scrollToBottom();
     } catch (e) {
+      developer.log('调整计划出错', error: e);
       _addErrorMessage("调整计划时出错：$e");
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  String _cleanJsonResponse(String response) {
+    // 移除可能的 markdown 代码块标记
+    var cleaned = response.replaceAll(RegExp(r'```json|```'), '');
+
+    // 移除开头和结尾的空白字符
+    cleaned = cleaned.trim();
+
+    // 移除可能的多余换行
+    cleaned = cleaned.replaceAll(RegExp(r'\n\s*'), ' ');
+
+    // 如果响应不是以 { 开始，尝试找到第一个 { 的位置
+    if (!cleaned.startsWith('{')) {
+      final startIndex = cleaned.indexOf('{');
+      if (startIndex != -1) {
+        cleaned = cleaned.substring(startIndex);
+      }
+    }
+
+    // 如果响应不是以 } 结束，尝试找到最后一个 } 的位置
+    if (!cleaned.endsWith('}')) {
+      final endIndex = cleaned.lastIndexOf('}');
+      if (endIndex != -1) {
+        cleaned = cleaned.substring(0, endIndex + 1);
+      }
+    }
+
+    developer.log('清理后的 JSON: $cleaned');
+
+    // 验证是否为有效的 JSON
+    try {
+      jsonDecode(cleaned);
+    } catch (e) {
+      throw FormatException('GPT 返回的不是有效的 JSON 格式: $cleaned');
+    }
+
+    return cleaned;
   }
 
   void _addErrorMessage(String error) {

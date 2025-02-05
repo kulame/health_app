@@ -126,21 +126,17 @@ class DayHealthReport extends _$DayHealthReport {
     final db = ref.read(databaseProvider);
 
     try {
-      // 将活动分类
-      final morningRoutines = activities
-          .where((a) => a.type == ActivityType.activity)
-          .take(2)
-          .toList();
-      developer.log('晨间活动数量: ${morningRoutines.length}');
-
-      final exercises = activities
-          .where((a) => a.type == ActivityType.activity)
-          .skip(2)
-          .toList();
-      developer.log('运动活动数量: ${exercises.length}');
+      // 修改活动分类逻辑
+      final allActivities =
+          activities.where((a) => a.type == ActivityType.activity).toList();
+      final morningRoutines = allActivities.take(2).toList();
+      final exercises = allActivities.skip(2).toList();
 
       final meals =
           activities.where((a) => a.type == ActivityType.meal).toList();
+
+      developer.log('晨间活动数量: ${morningRoutines.length}');
+      developer.log('运动活动数量: ${exercises.length}');
       developer.log('餐食数量: ${meals.length}');
 
       // 转换为数据库格式
