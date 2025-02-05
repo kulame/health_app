@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/gpt_service_provider.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'dart:convert';
+import '../providers/selected_date_provider.dart';
+import '../providers/day_health_report_provider.dart';
+import '../providers/database_provider.dart';
 
 class ChatDialog extends ConsumerStatefulWidget {
   const ChatDialog({super.key});
@@ -15,6 +20,19 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _addSystemMessage();
+  }
+
+  void _addSystemMessage() {
+    _messages.add(const ChatMessage(
+      message: "我是您的AI健康助手。我可以帮您调整今天的健康计划，请告诉我您想要如何调整。",
+      isUser: false,
+    ));
+  }
 
   @override
   void dispose() {
@@ -203,12 +221,58 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
     _scrollToBottom();
 
     try {
-      final response =
-          await ref.read(gptServiceProvider).chat(_controller.text);
+      // 1. 获取当前日期
+      final selectedDate = ref.read(selectedDateProvider);
+      final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate);
+
+      // 2. 从数据库获取当天计划
+      final db = ref.read(databaseProvider);
+      final plan = await db.getHealthPlanByDate(selectedDate);
+
+      if (plan == null) {
+        _addErrorMessage("未找到今天的健康计划");
+        return;
+      }
+
+      // 3. 构建带上下文的提示
+      final prompt = '''
+当前健康计划：
+${plan.morningRoutine}
+${plan.exercises}
+${plan.meals}
+
+用户请求：
+${_controller.text}
+
+请根据用户的请求调整健康计划，返回完整的修改后计划。请使用以下JSON格式：
+{
+  "dailyPlan": {
+    "morningRoutine": [{"time": "HH:MM AM/PM", "activity": "活动名称", "calories": "± XXX Kcal"}],
+    "exercises": [{"time": "HH:MM AM/PM", "type": "运动名称", "calories": "- XXX Kcal"}],
+    "meals": [{"time": "HH:MM AM/PM", "type": "餐食类型", "calories": "+ XXX Kcal", "menu": ["食物1", "食物2"]}]
+  }
+}
+''';
+
+      // 4. 发送到 GPT 获取调整建议
+      final gptService = ref.read(gptServiceProvider);
+      final response = await gptService.chat(prompt);
+
+      // 5. 保存调整后的计划
+      await gptService.saveHealthPlan(response, selectedDate);
+
+      // 6. 刷新 DayHealthReport
+      await ref
+          .read(dayHealthReportProvider.notifier)
+          .loadDayHealthPlan(selectedDate);
+
+      // 7. 提取回复消息
+      final jsonResponse = jsonDecode(response);
+      final summary = _generateSummary(jsonResponse);
 
       setState(() {
         _messages.add(ChatMessage(
-          message: response,
+          message: "我已经帮您调整了健康计划：\n\n$summary",
           isUser: false,
         ));
       });
@@ -216,16 +280,51 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
       _controller.clear();
       _scrollToBottom();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('发送失败：$e')),
-        );
-      }
+      _addErrorMessage("调整计划时出错：$e");
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _addErrorMessage(String error) {
+    setState(() {
+      _messages.add(ChatMessage(
+        message: error,
+        isUser: false,
+      ));
+      _isLoading = false;
+    });
+  }
+
+  String _generateSummary(Map<String, dynamic> response) {
+    final plan = response['dailyPlan'];
+    final StringBuffer summary = StringBuffer();
+
+    // 添加晨间活动总结
+    summary.writeln('晨间活动：');
+    for (var routine in plan['morningRoutine']) {
+      summary.writeln(
+          '- ${routine['time']}: ${routine['activity']} (${routine['calories']})');
+    }
+
+    // 添加运动总结
+    summary.writeln('\n运动计划：');
+    for (var exercise in plan['exercises']) {
+      summary.writeln(
+          '- ${exercise['time']}: ${exercise['type']} (${exercise['calories']})');
+    }
+
+    // 添加餐食总结
+    summary.writeln('\n餐食安排：');
+    for (var meal in plan['meals']) {
+      summary
+          .writeln('- ${meal['time']}: ${meal['type']} (${meal['calories']})');
+      summary.writeln('  食材: ${meal['menu'].join(', ')}');
+    }
+
+    return summary.toString();
   }
 }
 
