@@ -15,12 +15,39 @@ class HealthReport extends _$HealthReport {
     state = const AsyncValue.loading();
     try {
       final gptService = ref.read(gptServiceProvider);
+
+      developer.log('开始提取PDF文本');
       final pdfText = await gptService.extractTextFromPdf(file);
+      developer.log('PDF文本提取完成，长度: ${pdfText.length}');
+
+      developer.log('开始调用GPT服务解析健康报告');
       final activities = await gptService.analyzeHealthReport(pdfText);
-      developer.log('解析完成，活动数量: ${activities.length}');
+      developer.log('GPT解析完成，活动数量: ${activities.length}');
+
       state = AsyncValue.data(activities);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      developer.log(
+        '健康报告解析失败',
+        error: e,
+        stackTrace: st,
+        name: 'HealthReport',
+      );
+
+      // 构建详细的错误信息
+      final errorMessage = StringBuffer()
+        ..writeln('健康报告解析失败:')
+        ..writeln('错误类型: ${e.runtimeType}')
+        ..writeln('错误信息: $e')
+        ..writeln('堆栈跟踪:')
+        ..writeln(st.toString());
+
+      developer.log(errorMessage.toString());
+
+      // 更新状态时包含详细错误信息
+      state = AsyncValue.error(
+        errorMessage.toString(),
+        st,
+      );
     }
   }
 

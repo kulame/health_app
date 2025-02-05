@@ -10,11 +10,13 @@ import '../models/activity_item.dart';
 class GptService {
   final OpenAIClient _client;
   final Ref _ref;
+  final String _modelId;
 
   GptService(this._ref)
       : _client = OpenAIClient(
           apiKey: dotenv.env['GPT_API_KEY'] ?? '',
-        );
+        ),
+        _modelId = dotenv.env['GPT_MODEL'] ?? 'gpt-4o';
 
   static const _healthPlanSchema = JsonSchemaObject(
     name: 'HealthPlan',
@@ -33,16 +35,11 @@ class GptService {
                 'type': 'object',
                 'required': ['time', 'activity', 'calories'],
                 'properties': {
-                  'time': {
-                    'type': 'string',
-                    'pattern': r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
-                  },
+                  'time': {'type': 'string'},
                   'activity': {'type': 'string'},
-                  'calories': {
-                    'type': 'string',
-                    'pattern': r'^[+-]? ?[0-9]+ Kcal$'
-                  }
-                }
+                  'calories': {'type': 'string'}
+                },
+                'additionalProperties': false
               }
             },
             'exercises': {
@@ -51,13 +48,11 @@ class GptService {
                 'type': 'object',
                 'required': ['time', 'type', 'calories'],
                 'properties': {
-                  'time': {
-                    'type': 'string',
-                    'pattern': r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
-                  },
+                  'time': {'type': 'string'},
                   'type': {'type': 'string'},
-                  'calories': {'type': 'string', 'pattern': r'^- ?[0-9]+ Kcal$'}
-                }
+                  'calories': {'type': 'string'}
+                },
+                'additionalProperties': false
               }
             },
             'meals': {
@@ -66,26 +61,23 @@ class GptService {
                 'type': 'object',
                 'required': ['time', 'type', 'calories', 'menu'],
                 'properties': {
-                  'time': {
-                    'type': 'string',
-                    'pattern': r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
-                  },
+                  'time': {'type': 'string'},
                   'type': {'type': 'string'},
-                  'calories': {
-                    'type': 'string',
-                    'pattern': r'^\\+ ?[0-9]+ Kcal$'
-                  },
+                  'calories': {'type': 'string'},
                   'menu': {
                     'type': 'array',
                     'items': {'type': 'string'}
                   }
-                }
+                },
+                'additionalProperties': false
               }
             }
-          }
+          },
+          'additionalProperties': false
         }
       },
-      'required': ['dailyPlan']
+      'required': ['dailyPlan'],
+      'additionalProperties': false
     },
   );
 
@@ -100,7 +92,7 @@ class GptService {
     try {
       final response = await _client.createChatCompletion(
         request: CreateChatCompletionRequest(
-          model: ChatCompletionModel.modelId('gpt-4'),
+          model: ChatCompletionModel.modelId(_modelId),
           messages: [
             ChatCompletionMessage.system(
               content: '你是一个医疗康复专家。请分析以下医疗报告，并制定一天的康复计划。',
@@ -176,7 +168,7 @@ class GptService {
     try {
       final response = await _client.createChatCompletion(
         request: CreateChatCompletionRequest(
-          model: ChatCompletionModel.modelId('gpt-4'),
+          model: ChatCompletionModel.modelId(_modelId),
           messages: [
             ChatCompletionMessage.system(
               content: '你是一个友好的健康顾问。请用简洁专业的语言回答用户的问题。',
