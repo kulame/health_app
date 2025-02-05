@@ -1,22 +1,93 @@
 import 'dart:io';
-import 'package:dio/dio.dart';
+import 'package:openai_dart/openai_dart.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/database_provider.dart';
+import '../models/activity_item.dart';
 
 class GptService {
-  final Dio _dio = Dio();
-  final String _apiKey = dotenv.env['GPT_API_KEY'] ?? '';
-  final String _apiEndpoint = dotenv.env['GPT_API_ENDPOINT'] ?? '';
-  final String _model = dotenv.env['GPT_MODEL'] ?? 'gpt-4';
-  final int _maxTokens = int.parse(dotenv.env['GPT_MAX_TOKENS'] ?? '2000');
-  final double _temperature =
-      double.parse(dotenv.env['GPT_TEMPERATURE'] ?? '0.3');
+  final OpenAIClient _client;
   final Ref _ref;
 
-  GptService(this._ref);
+  GptService(this._ref)
+      : _client = OpenAIClient(
+          apiKey: dotenv.env['GPT_API_KEY'] ?? '',
+        );
+
+  static const _healthPlanSchema = JsonSchemaObject(
+    name: 'HealthPlan',
+    description: '每日健康计划',
+    strict: true,
+    schema: {
+      'type': 'object',
+      'properties': {
+        'dailyPlan': {
+          'type': 'object',
+          'required': ['morningRoutine', 'exercises', 'meals'],
+          'properties': {
+            'morningRoutine': {
+              'type': 'array',
+              'items': {
+                'type': 'object',
+                'required': ['time', 'activity', 'calories'],
+                'properties': {
+                  'time': {
+                    'type': 'string',
+                    'pattern': r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+                  },
+                  'activity': {'type': 'string'},
+                  'calories': {
+                    'type': 'string',
+                    'pattern': r'^[+-]? ?[0-9]+ Kcal$'
+                  }
+                }
+              }
+            },
+            'exercises': {
+              'type': 'array',
+              'items': {
+                'type': 'object',
+                'required': ['time', 'type', 'calories'],
+                'properties': {
+                  'time': {
+                    'type': 'string',
+                    'pattern': r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+                  },
+                  'type': {'type': 'string'},
+                  'calories': {'type': 'string', 'pattern': r'^- ?[0-9]+ Kcal$'}
+                }
+              }
+            },
+            'meals': {
+              'type': 'array',
+              'items': {
+                'type': 'object',
+                'required': ['time', 'type', 'calories', 'menu'],
+                'properties': {
+                  'time': {
+                    'type': 'string',
+                    'pattern': r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+                  },
+                  'type': {'type': 'string'},
+                  'calories': {
+                    'type': 'string',
+                    'pattern': r'^\\+ ?[0-9]+ Kcal$'
+                  },
+                  'menu': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      'required': ['dailyPlan']
+    },
+  );
 
   Future<String> extractTextFromPdf(File pdfFile) async {
     final document = PdfDocument(inputBytes: await pdfFile.readAsBytes());
@@ -27,103 +98,49 @@ class GptService {
 
   Future<Map<String, dynamic>> analyzeHealthReport(String pdfText) async {
     try {
-      final response = await _sendGptRequest(pdfText);
-      final content =
-          _cleanJsonString(response.data['choices'][0]['message']['content']);
-      final result = jsonDecode(content) as Map<String, dynamic>;
-      _validateResponse(result);
-      return result;
+      final response = await _client.createChatCompletion(
+        request: CreateChatCompletionRequest(
+          model: ChatCompletionModel.modelId('gpt-4'),
+          messages: [
+            ChatCompletionMessage.system(
+              content: '你是一个医疗康复专家。请分析以下医疗报告，并制定一天的康复计划。',
+            ),
+            ChatCompletionMessage.user(
+              content: ChatCompletionUserMessageContent.string(pdfText),
+            ),
+          ],
+          responseFormat: ResponseFormat.jsonSchema(
+            jsonSchema: _healthPlanSchema,
+          ),
+          temperature: 0.3,
+        ),
+      );
+
+      return jsonDecode(response.choices.first.message.content!)
+          as Map<String, dynamic>;
     } catch (e) {
       throw Exception('分析报告失败: $e');
     }
   }
 
-  Future<Response> _sendGptRequest(String pdfText) => _dio.post(
-        _apiEndpoint,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $_apiKey',
-            'Content-Type': 'application/json',
-          },
-        ),
-        data: _buildRequestData(pdfText),
-      );
-
-  Map<String, dynamic> _buildRequestData(String pdfText) => {
-        'model': _model,
-        'messages': [
-          {
-            'role': 'system',
-            'content': _systemPrompt,
-          },
-          {
-            'role': 'user',
-            'content': pdfText,
-          },
-        ],
-        'temperature': 0.3,
-      };
-
-  String get _systemPrompt => '''你是一个医疗康复专家。请分析以下医疗报告，并制定一天的康复计划。
-    请严格按照以下JSON格式返回，不要添加任何其他内容：
-    {
-      "dailyPlan": {
-        "morningRoutine": [{"time": "HH:MM AM/PM", "activity": "活动名称", "calories": "± XXX Kcal"}],
-        "exercises": [{"time": "HH:MM AM/PM", "type": "运动名称", "calories": "- XXX Kcal"}],
-        "meals": [{"time": "HH:MM AM/PM", "type": "餐食类型", "calories": "+ XXX Kcal", "menu": ["食物1", "食物2"]}]
-      }
-    }''';
-
-  String _cleanJsonString(String input) {
-    // 移除 JSON 代码块标记
-    var cleaned = input.replaceAll(RegExp(r'```json|```'), '').trim();
-
-    // 移除零宽字符和其他不可见字符
-    cleaned = cleaned.replaceAll('\u200B', ''); // 零宽空格
-    cleaned = cleaned.replaceAll('\u200C', ''); // 零宽非连接符
-    cleaned = cleaned.replaceAll('\u200D', ''); // 零宽连接符
-    cleaned = cleaned.replaceAll('\uFEFF', ''); // 字节顺序标记
-
-    // 移除多余的空白字符
-    cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
-
-    return cleaned;
-  }
-
-  void _validateResponse(Map<String, dynamic> data) {
-    if (!data.containsKey('dailyPlan')) {
-      throw Exception('返回数据缺少 dailyPlan 字段');
-    }
-
-    final plan = data['dailyPlan'] as Map<String, dynamic>;
-
-    if (!plan.containsKey('morningRoutine') ||
-        !plan.containsKey('exercises') ||
-        !plan.containsKey('meals')) {
-      throw Exception('dailyPlan 缺少必要字段');
-    }
-  }
-
   Future<String> chat(String message) async {
     try {
-      final response = await _dio.post(
-        _apiEndpoint,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $_apiKey',
-            'Content-Type': 'application/json',
-          },
-        ),
-        data: {
-          'model': _model,
-          'messages': [
-            {'role': 'user', 'content': message}
+      final response = await _client.createChatCompletion(
+        request: CreateChatCompletionRequest(
+          model: ChatCompletionModel.modelId('gpt-4'),
+          messages: [
+            ChatCompletionMessage.system(
+              content: '你是一个友好的健康顾问。请用简洁专业的语言回答用户的问题。',
+            ),
+            ChatCompletionMessage.user(
+              content: ChatCompletionUserMessageContent.string(message),
+            ),
           ],
-          'temperature': 0.7,
-        },
+          temperature: 0.7,
+        ),
       );
 
-      return response.data['choices'][0]['message']['content'] as String;
+      return response.choices.first.message.content ?? '抱歉，我现在无法回答这个问题。';
     } catch (e) {
       throw Exception('聊天失败: $e');
     }
@@ -142,7 +159,7 @@ class GptService {
         meals: jsonEncode(plan['meals']),
       );
     } catch (e) {
-      print('保存健康计划失败: $e');
+      throw Exception('保存健康计划失败: $e');
     }
   }
 }
