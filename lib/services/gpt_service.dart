@@ -96,7 +96,7 @@ class GptService {
     return text;
   }
 
-  Future<Map<String, dynamic>> analyzeHealthReport(String pdfText) async {
+  Future<List<ActivityItem>> analyzeHealthReport(String pdfText) async {
     try {
       final response = await _client.createChatCompletion(
         request: CreateChatCompletionRequest(
@@ -116,12 +116,61 @@ class GptService {
         ),
       );
 
-      return jsonDecode(response.choices.first.message.content!)
+      final rawData = jsonDecode(response.choices.first.message.content!)
           as Map<String, dynamic>;
+
+      return _parseActivities(rawData);
     } catch (e) {
       throw Exception('分析报告失败: $e');
     }
   }
+
+  List<ActivityItem> _parseActivities(Map<String, dynamic> rawData) {
+    final activities = <ActivityItem>[];
+    final dailyPlan = rawData['dailyPlan'] as Map<String, dynamic>;
+
+    activities
+      ..addAll(_parseMorningRoutines(dailyPlan['morningRoutine'] as List))
+      ..addAll(_parseExercises(dailyPlan['exercises'] as List))
+      ..addAll(_parseMeals(dailyPlan['meals'] as List));
+
+    return activities;
+  }
+
+  List<ActivityItem> _parseMorningRoutines(List routines) => routines
+      .map((routine) => ActivityItem(
+            title: routine['activity'] as String,
+            time: routine['time'] as String,
+            kcal: routine['calories'] as String,
+            type: ActivityType.activity,
+          ))
+      .toList();
+
+  List<ActivityItem> _parseExercises(List exercises) => exercises
+      .map((exercise) => ActivityItem(
+            title: exercise['type'] as String,
+            time: exercise['time'] as String,
+            kcal: exercise['calories'] as String,
+            type: ActivityType.activity,
+          ))
+      .toList();
+
+  List<ActivityItem> _parseMeals(List meals) => meals
+      .map((meal) => ActivityItem(
+            title: meal['type'] as String,
+            time: meal['time'] as String,
+            kcal: meal['calories'] as String,
+            type: ActivityType.meal,
+            mealItems: _parseMealItems(meal),
+          ))
+      .toList();
+
+  List<MealItem> _parseMealItems(dynamic meal) => (meal['menu'] as List)
+      .map((item) => MealItem(
+            name: item as String,
+            kcal: meal['calories'] as String,
+          ))
+      .toList();
 
   Future<String> chat(String message) async {
     try {

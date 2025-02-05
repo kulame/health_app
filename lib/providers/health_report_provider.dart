@@ -16,8 +16,7 @@ class HealthReport extends _$HealthReport {
     try {
       final gptService = ref.read(gptServiceProvider);
       final pdfText = await gptService.extractTextFromPdf(file);
-      final rawResponse = await gptService.analyzeHealthReport(pdfText);
-      final activities = _parseActivities(rawResponse);
+      final activities = await gptService.analyzeHealthReport(pdfText);
       developer.log('解析完成，活动数量: ${activities.length}');
       state = AsyncValue.data(activities);
     } catch (e, st) {
