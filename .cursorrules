@@ -163,6 +163,45 @@
 - 记录复杂的逻辑和不明显的代码决策。
 - 遵循 Flutter、Riverpod 和 Supabase 官方文档，了解最佳实践。
 
+### openai
+
+#### 确保所有 OpenAI 请求都使用结构化输出
+- 始终在 OpenAI API 调用中使用结构化 JSON 输出。
+- 使用“json_schema”通过“response_format”强制执行严格的格式定义。
+#### OpenAI API 调用的示例配置
+```Dart
+final res = await client.createThreadRun(
+  threadId: threadId,
+  request: CreateRunRequest(
+    assistantId: assistantId,
+    instructions: 'You are a helpful assistant that extracts names from text.',
+    model: CreateRunRequestModel.modelId('gpt-4o'),
+    responseFormat: CreateRunRequestResponseFormat.responseFormat(
+        ResponseFormat.jsonSchema(
+          jsonSchema: JsonSchemaObject(
+            name: 'Names',
+            description: 'A list of names',
+            strict: true,
+            schema: {
+              'type': 'object',
+              'properties': {
+                'names': {
+                  'type': 'array',
+                  'items': {
+                    'type': 'string',
+                  },
+                },
+              },
+              'additionalProperties': false,
+              'required': ['names'],
+            },
+          ),
+        )
+    )
+  ),
+);
+```
+
 请参阅 Flutter、Riverpod 和 Supabase,freezed文档，了解小部件、状态管理和后端集成的最佳实践。
 
 请参考以下官方文档：
