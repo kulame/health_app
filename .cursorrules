@@ -48,6 +48,7 @@ Always respond in 中文。
 - lib/models 文件夹存放数据模型
 - lib/services 文件夹存放服务
 - lib/data  持久层代码
+- lib/tools 文件夹存放给ai使用的工具函数
 - assets 文件夹存放资源
 
 ### 错误处理和验证
