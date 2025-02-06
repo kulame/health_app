@@ -29,7 +29,6 @@ class GptService {
           'type': 'array',
           'items': {
             'type': 'object',
-            'required': ['title', 'time', 'kcal', 'type'],
             'properties': {
               'title': {'type': 'string'},
               'time': {'type': 'string'},
@@ -51,6 +50,7 @@ class GptService {
                 }
               }
             },
+            'required': ['title', 'time', 'kcal', 'type', 'mealItems'],
             'additionalProperties': false
           }
         }
@@ -76,9 +76,9 @@ class GptService {
             ChatCompletionMessage.system(
               content: '''你是一个医疗康复专家。请分析以下医疗报告，并制定一天的康复计划。
               返回的活动列表应包含：
-              - 晨间活动（type: activity）
-              - 运动计划（type: activity）
-              - 餐食安排（type: meal，需包含 mealItems）
+              - 晨间活动（type: activity，mealItems设为空数组[]）
+              - 运动计划（type: activity，mealItems设为空数组[]）
+              - 餐食安排（type: meal，mealItems包含具体餐食项）
               所有时间格式为 HH:mm，卡路里格式为 "+/-数字 Kcal"''',
             ),
             ChatCompletionMessage.user(
@@ -110,7 +110,7 @@ class GptService {
                               kcal: m['kcal'] as String,
                             ))
                         .toList()
-                    : null,
+                    : [], // 非 meal 类型返回空数组
               ))
           .toList();
 
