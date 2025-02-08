@@ -60,6 +60,49 @@ class GptService {
     },
   );
 
+  static const _savePlanFunction = FunctionObject(
+    name: "insertOrUpdateHealthPlan",
+    description: "save health plan to database",
+    parameters: {
+      'type': 'object',
+      'properties': {
+        'date': {
+          'type': 'string',
+          'description': 'the date of the health plan , format is yyyy-MM-dd',
+        },
+        'activities': {
+          'type': 'array',
+          'items': {
+            'type': 'object',
+            'properties': {
+              'title': {'type': 'string'},
+              'time': {'type': 'string'},
+              'kcal': {'type': 'string'},
+              'type': {
+                'type': 'string',
+                'enum': ['activity', 'meal']
+              },
+              'mealItems': {
+                'type': 'array',
+                'items': {
+                  'type': 'object',
+                  'required': ['name', 'kcal'],
+                  'properties': {
+                    'name': {'type': 'string'},
+                    'kcal': {'type': 'string'}
+                  },
+                  'additionalProperties': false
+                }
+              }
+            },
+            'required': ['title', 'time', 'kcal', 'type', 'mealItems'],
+            'additionalProperties': false
+          }
+        }
+      }
+    },
+  );
+
   Future<String> extractTextFromPdf(File pdfFile) async {
     final document = PdfDocument(inputBytes: await pdfFile.readAsBytes());
     final text = PdfTextExtractor(document).extractText();
@@ -120,7 +163,12 @@ class GptService {
     }
   }
 
-  Future<String> chat(String message) async {
+  Future<String> chat(String message, List<String> history) async {
+    const tool = ChatCompletionTool(
+      type: ChatCompletionToolType.function,
+      function: _savePlanFunction,
+    );
+
     try {
       final response = await _client.createChatCompletion(
         request: CreateChatCompletionRequest(
@@ -134,8 +182,18 @@ class GptService {
             ),
           ],
           temperature: 0.7,
+          tools: [tool],
+          toolChoice: ChatCompletionToolChoiceOption.tool(
+            ChatCompletionNamedToolChoice(
+              type: ChatCompletionNamedToolChoiceType.function,
+              function: ChatCompletionFunctionCallOption(
+                  name: _savePlanFunction.name),
+            ),
+          ),
         ),
       );
+
+      print(response.choices.first.message.toolCalls);
 
       return response.choices.first.message.content ?? '抱歉，我现在无法回答这个问题。';
     } catch (e) {
