@@ -191,8 +191,11 @@ class GptService {
       ];
 
       developer.log('发送请求到 GPT', name: 'GptService');
-      developer.log('消息列表: ${messages.map((m) => m.content).toList()}',
+      developer.log('系统提示: ${messages.first.content}', name: 'GptService');
+      developer.log(
+          '历史消息: ${messages.skip(1).take(messages.length - 2).map((m) => '${m.role}: ${m.content}').toList()}',
           name: 'GptService');
+      developer.log('当前消息: ${messages.last.content}', name: 'GptService');
 
       final response = await _client.createChatCompletion(
         request: CreateChatCompletionRequest(
@@ -210,18 +213,36 @@ class GptService {
         ),
       );
 
-      developer.log('收到 GPT 响应', name: 'GptService');
-      developer.log('响应内容: ${response.choices.first.message.content}',
+      // 打印完整的响应数据
+      developer.log('OpenAI 完整响应:', name: 'GptService');
+      developer.log('ID: ${response.id}', name: 'GptService');
+      developer.log('模型: ${response.model}', name: 'GptService');
+      developer.log('使用tokens: ${response.usage?.totalTokens ?? 0}',
+          name: 'GptService');
+      developer.log('提示tokens: ${response.usage?.promptTokens ?? 0}',
+          name: 'GptService');
+      developer.log('完成tokens: ${response.usage?.completionTokens ?? 0}',
           name: 'GptService');
 
-      final toolCalls = response.choices.first.message.toolCalls;
+      final choice = response.choices.first;
+      developer.log('选择索引: ${choice.index}', name: 'GptService');
+      developer.log('结束原因: ${choice.finishReason}', name: 'GptService');
+      developer.log('消息内容: ${choice.message}', name: 'GptService');
+
+      if (choice.message.toolCalls != null) {
+        for (final toolCall in choice.message.toolCalls!) {
+          developer.log('工具调用ID: ${toolCall.id}', name: 'GptService');
+          developer.log('工具类型: ${toolCall.type}', name: 'GptService');
+          developer.log('函数名称: ${toolCall.function.name}', name: 'GptService');
+          developer.log('函数参数: ${toolCall.function.arguments}',
+              name: 'GptService');
+        }
+      }
+
+      final toolCalls = choice.message.toolCalls;
       if (toolCalls != null && toolCalls.isNotEmpty) {
         developer.log('检测到函数调用', name: 'GptService');
         for (final toolCall in toolCalls) {
-          developer.log('函数名: ${toolCall.function.name}', name: 'GptService');
-          developer.log('函数参数: ${toolCall.function.arguments}',
-              name: 'GptService');
-
           if (toolCall.function.name == 'insertOrUpdateHealthPlan') {
             final arguments = jsonDecode(toolCall.function.arguments);
             developer.log('解析函数参数: $arguments', name: 'GptService');
@@ -234,6 +255,8 @@ class GptService {
                     ActivityItem.fromJson(item as Map<String, dynamic>))
                 .toList();
             developer.log('活动数量: ${activities.length}', name: 'GptService');
+            developer.log('活动详情: ${jsonEncode(activities)}',
+                name: 'GptService');
 
             final db = _ref.read(databaseProvider);
             developer.log('开始保存到数据库', name: 'GptService');
@@ -248,8 +271,8 @@ class GptService {
         developer.log('没有检测到函数调用', name: 'GptService');
       }
 
-      final content = response.choices.first.message.content;
-      developer.log('返回消息内容: $content', name: 'GptService');
+      final content = choice.message.content;
+      developer.log('最终返回内容: $content', name: 'GptService');
       return content ?? '抱歉，我现在无法回答这个问题。';
     } catch (e, stack) {
       developer.log('聊天失败', name: 'GptService', error: e, stackTrace: stack);
