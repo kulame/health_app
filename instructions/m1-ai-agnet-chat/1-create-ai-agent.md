@@ -14,3 +14,4 @@
 1 @GptService  chat接口增加一个参数activites  类型是List<ActivityItem>  用来记录用户当前的健康计划。
 2 修改相关调用chat接口的函数，传入activities。
 3 chat函数将activities transform成字符串，一并传给chatgpt 让gpt可以获得用户当前计划的上下文
+4 实现一个工具类 用来管理List<ActivityItem> 数据结构
