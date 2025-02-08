@@ -258,6 +258,7 @@ ${activities.map((a) => '''
       final toolCalls = choice.message.toolCalls;
       if (toolCalls != null && toolCalls.isNotEmpty) {
         developer.log('检测到函数调用', name: 'GptService');
+        var after = activities;
         for (final toolCall in toolCalls) {
           if (toolCall.function.name == 'insertOrUpdateHealthPlan') {
             final arguments = jsonDecode(toolCall.function.arguments);
@@ -266,28 +267,28 @@ ${activities.map((a) => '''
             final date = DateTime.parse(arguments['date'] as String);
             developer.log('日期: $date', name: 'GptService');
 
-            final activities = (arguments['activities'] as List)
+            after = (arguments['activities'] as List)
                 .map((item) =>
                     ActivityItem.fromJson(item as Map<String, dynamic>))
                 .toList();
-            developer.log('活动数量: ${activities.length}', name: 'GptService');
-            developer.log('活动详情: ${jsonEncode(activities)}',
-                name: 'GptService');
+            developer.log('活动数量: ${after.length}', name: 'GptService');
+            developer.log('活动详情: ${jsonEncode(after)}', name: 'GptService');
 
             final db = _ref.read(databaseProvider);
             developer.log('开始保存到数据库', name: 'GptService');
             await db.insertOrUpdateHealthPlan(
               date: date,
-              activities: activities,
+              activities: after,
             );
             developer.log('保存成功', name: 'GptService');
           }
         }
+        return chatWithModified(message, history,
+            before: activities, after: after);
       } else {
         developer.log('没有检测到函数调用', name: 'GptService');
+        return chat(message, history, activities);
       }
-
-      return chat(message, history, activities);
     } catch (e, stack) {
       developer.log('聊天失败', name: 'GptService', error: e, stackTrace: stack);
       throw Exception('聊天失败: $e');
