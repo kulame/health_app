@@ -165,7 +165,7 @@ class GptService {
     }
   }
 
-  Future<String> chat(
+  Future<String> agent(
     String message,
     List<ChatMessage> history, {
     List<ActivityItem>? activities,

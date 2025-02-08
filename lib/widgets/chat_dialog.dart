@@ -210,7 +210,7 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
     try {
       final activities = await ref.watch(dayHealthReportProvider);
 
-      final response = await ref.read(gptServiceProvider).chat(
+      final response = await ref.read(gptServiceProvider).agent(
             _controller.text,
             _messages,
             activities: activities.value,
