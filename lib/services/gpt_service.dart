@@ -169,7 +169,7 @@ class GptService {
   Future<String> agent(
     String message,
     List<ChatMessage> history,
-    List<ActivityItem>? activities,
+    List<ActivityItem> activities,
   ) async {
     const tool = ChatCompletionTool(
       type: ChatCompletionToolType.function,
@@ -180,11 +180,8 @@ class GptService {
       developer.log('开始处理聊天请求', name: 'GptService');
       developer.log('用户消息: $message', name: 'GptService');
       developer.log('历史消息数量: ${history.length}', name: 'GptService');
-      if (activities != null) {
-        developer.log('当前健康计划活动数量: ${activities.length}', name: 'GptService');
-      }
 
-      final currentPlanMessage = activities != null && activities.isNotEmpty
+      final currentPlanMessage = activities.isNotEmpty
           ? '''
 当前的健康计划如下：
 ${activities.map((a) => '''
@@ -317,17 +314,14 @@ ${activities.map((a) => '''
   Future<String> chat(
     String message,
     List<ChatMessage> history,
-    List<ActivityItem>? activities,
+    List<ActivityItem> activities,
   ) async {
     try {
       developer.log('开始处理聊天请求', name: 'GptService');
       developer.log('用户消息: $message', name: 'GptService');
       developer.log('历史消息数量: ${history.length}', name: 'GptService');
-      if (activities != null) {
-        developer.log('当前健康计划活动数量: ${activities.length}', name: 'GptService');
-      }
 
-      final currentPlanMessage = activities != null && activities.isNotEmpty
+      final currentPlanMessage = activities.isNotEmpty
           ? '''
 当前的健康计划如下：
 ${ActivityItemUtils.formatToString(activities)}'''
@@ -384,6 +378,94 @@ ${ActivityItemUtils.formatToString(activities)}'''
     } catch (e, stack) {
       developer.log('聊天失败', name: 'GptService', error: e, stackTrace: stack);
       throw Exception('聊天失败: $e');
+    }
+  }
+
+  Future<String> chatWithModified(String message, List<ChatMessage> history,
+      {required List<ActivityItem> before,
+      required List<ActivityItem> after}) async {
+    try {
+      developer.log('开始处理修改后的聊天请求', name: 'GptService');
+      developer.log('用户消息: $message', name: 'GptService');
+      developer.log('历史消息数量: ${history.length}', name: 'GptService');
+      developer.log('修改前活动数量: ${before.length}', name: 'GptService');
+      developer.log('修改后活动数量: ${after.length}', name: 'GptService');
+
+      // 获取计划差异
+      final diff = ActivityItemUtils.comparePlans(before, after);
+
+      final planComparison = '''
+修改前的健康计划：
+${ActivityItemUtils.formatToString(before)}
+
+修改后的健康计划：
+${ActivityItemUtils.formatToString(after)}
+
+主要变化：
+${diff['added'].isNotEmpty ? '新增活动：\n${ActivityItemUtils.formatToString(diff['added'])}\n' : ''}
+${diff['removed'].isNotEmpty ? '删除活动：\n${ActivityItemUtils.formatToString(diff['removed'])}\n' : ''}
+${diff['modified'].isNotEmpty ? '修改活动：\n${(diff['modified'] as List).map((m) => '- ${m['old'].title} -> ${m['new'].title}').join('\n')}\n' : ''}
+总卡路里变化：${diff['totalKcalDiff']} Kcal
+''';
+
+      final messages = [
+        ChatCompletionMessage.system(
+          content: '''你是一个友好的健康顾问。请用简洁专业的语言分析健康计划的变化。
+          请根据修改前后的计划差异，详细解释：
+          1. 修改的具体内容
+          2. 修改的原因
+          3. 预期达到的效果
+          4. 对用户的建议
+
+          $planComparison''',
+        ),
+        ...history.map((msg) => msg.isUser
+            ? ChatCompletionMessage.user(
+                content: ChatCompletionUserMessageContent.string(msg.message))
+            : ChatCompletionMessage.assistant(content: msg.message)),
+        ChatCompletionMessage.user(
+          content: ChatCompletionUserMessageContent.string(message),
+        ),
+      ];
+
+      developer.log('发送请求到 GPT', name: 'GptService');
+      developer.log('系统提示: ${messages.first.content}', name: 'GptService');
+      developer.log(
+          '历史消息: ${messages.skip(1).take(messages.length - 2).map((m) => '${m.role}: ${m.content}').toList()}',
+          name: 'GptService');
+      developer.log('当前消息: ${messages.last.content}', name: 'GptService');
+
+      final response = await _client.createChatCompletion(
+        request: CreateChatCompletionRequest(
+          model: ChatCompletionModel.modelId(_modelId),
+          messages: messages,
+          temperature: 0.7,
+        ),
+      );
+
+      // 打印完整的响应数据
+      developer.log('OpenAI 完整响应:', name: 'GptService');
+      developer.log('ID: ${response.id}', name: 'GptService');
+      developer.log('模型: ${response.model}', name: 'GptService');
+      developer.log('使用tokens: ${response.usage?.totalTokens ?? 0}',
+          name: 'GptService');
+      developer.log('提示tokens: ${response.usage?.promptTokens ?? 0}',
+          name: 'GptService');
+      developer.log('完成tokens: ${response.usage?.completionTokens ?? 0}',
+          name: 'GptService');
+
+      final choice = response.choices.first;
+      developer.log('选择索引: ${choice.index}', name: 'GptService');
+      developer.log('结束原因: ${choice.finishReason}', name: 'GptService');
+      developer.log('消息内容: ${choice.message}', name: 'GptService');
+
+      final content = choice.message.content;
+      developer.log('最终返回内容: $content', name: 'GptService');
+      return content ?? '抱歉，我现在无法分析计划变化。';
+    } catch (e, stack) {
+      developer.log('分析计划变化失败',
+          name: 'GptService', error: e, stackTrace: stack);
+      throw Exception('分析计划变化失败: $e');
     }
   }
 }
