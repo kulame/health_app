@@ -3,17 +3,17 @@ import 'package:drift/drift.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'dart:io';
+import 'dart:convert';
 import 'package:drift/native.dart';
 import 'package:intl/intl.dart';
+import '../models/activity_item.dart';
 
 part 'database.g.dart';
 
 class DailyHealthPlans extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get date => text()();
-  TextColumn get morningRoutine => text()();
-  TextColumn get exercises => text()();
-  TextColumn get meals => text()();
+  TextColumn get activities => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -23,31 +23,49 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
-  Future<DailyHealthPlan?> getHealthPlanByDate(DateTime date) {
-    final dateStr = DateFormat('yyyy-MM-dd').format(date);
-    final query = select(dailyHealthPlans)
-      ..where((plan) => plan.date.equals(dateStr));
-    return query.getSingleOrNull();
+  Future<void> insertOrUpdateHealthPlan({
+    required DateTime date,
+    required List<ActivityItem> activities,
+  }) async {
+    try {
+      final dateStr = DateFormat('yyyy-MM-dd').format(date);
+
+      final activitiesJson = jsonEncode(
+        activities.map((activity) => activity.toJson()).toList(),
+      );
+
+      await into(dailyHealthPlans).insertOnConflictUpdate(
+        DailyHealthPlansCompanion.insert(
+          date: dateStr,
+          activities: activitiesJson,
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    } catch (e) {
+      throw Exception('保存健康计划失败: $e');
+    }
   }
 
-  Future<int> insertOrUpdateHealthPlan({
-    required DateTime date,
-    required String morningRoutine,
-    required String exercises,
-    required String meals,
-  }) async {
-    final dateStr = DateFormat('yyyy-MM-dd').format(date);
-    return into(dailyHealthPlans).insertOnConflictUpdate(
-      DailyHealthPlansCompanion.insert(
-        date: dateStr,
-        morningRoutine: morningRoutine,
-        exercises: exercises,
-        meals: meals,
-        updatedAt: Value(DateTime.now()),
-      ),
-    );
+  Future<List<ActivityItem>?> getHealthPlanByDate(DateTime date) async {
+    try {
+      final dateStr = DateFormat('yyyy-MM-dd').format(date);
+      final result = await (select(dailyHealthPlans)
+            ..where((plan) => plan.date.equals(dateStr)))
+          .getSingleOrNull();
+
+      if (result == null || result.activities.isEmpty) {
+        return null;
+      }
+
+      final List<dynamic> activitiesJson = jsonDecode(result.activities);
+      return activitiesJson
+          .map((json) => ActivityItem.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw Exception('获取健康计划失败: $e');
+    }
   }
 
   Future<List<DailyHealthPlan>> getAllHealthPlans() {

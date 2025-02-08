@@ -146,14 +146,14 @@ class GptService {
   Future<void> saveHealthPlan(String response, DateTime date) async {
     try {
       final jsonResponse = jsonDecode(response);
-      final plan = jsonResponse['dailyPlan'];
+      final activities = (jsonResponse['activities'] as List)
+          .map((item) => ActivityItem.fromJson(item as Map<String, dynamic>))
+          .toList();
 
       final db = _ref.read(databaseProvider);
       await db.insertOrUpdateHealthPlan(
         date: date,
-        morningRoutine: jsonEncode(plan['morningRoutine']),
-        exercises: jsonEncode(plan['exercises']),
-        meals: jsonEncode(plan['meals']),
+        activities: activities,
       );
     } catch (e) {
       throw Exception('保存健康计划失败: $e');
