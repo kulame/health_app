@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/database_provider.dart';
 import '../models/activity_item.dart';
+import 'dart:developer' as developer;
 
 class GptService {
   final OpenAIClient _client;
@@ -171,17 +172,32 @@ class GptService {
     );
 
     try {
+      developer.log('开始处理聊天请求', name: 'GptService');
+      developer.log('用户消息: $message', name: 'GptService');
+      developer.log('历史消息数量: ${history.length}', name: 'GptService');
+
+      final messages = [
+        ChatCompletionMessage.system(
+          content: '''你是一个友好的健康顾问。请用简洁专业的语言回答用户的问题。
+          如果用户提到需要调整健康计划，请使用 insertOrUpdateHealthPlan 函数来保存新的计划。''',
+        ),
+        ...history.map((msg) => msg.isUser
+            ? ChatCompletionMessage.user(
+                content: ChatCompletionUserMessageContent.string(msg.message))
+            : ChatCompletionMessage.assistant(content: msg.message)),
+        ChatCompletionMessage.user(
+          content: ChatCompletionUserMessageContent.string(message),
+        ),
+      ];
+
+      developer.log('发送请求到 GPT', name: 'GptService');
+      developer.log('消息列表: ${messages.map((m) => m.content).toList()}',
+          name: 'GptService');
+
       final response = await _client.createChatCompletion(
         request: CreateChatCompletionRequest(
           model: ChatCompletionModel.modelId(_modelId),
-          messages: [
-            ChatCompletionMessage.system(
-              content: '你是一个友好的健康顾问。请用简洁专业的语言回答用户的问题。',
-            ),
-            ChatCompletionMessage.user(
-              content: ChatCompletionUserMessageContent.string(message),
-            ),
-          ],
+          messages: messages,
           temperature: 0.7,
           tools: [tool],
           toolChoice: ChatCompletionToolChoiceOption.tool(
@@ -194,10 +210,49 @@ class GptService {
         ),
       );
 
-      print(response.choices.first.message.toolCalls);
+      developer.log('收到 GPT 响应', name: 'GptService');
+      developer.log('响应内容: ${response.choices.first.message.content}',
+          name: 'GptService');
 
-      return response.choices.first.message.content ?? '抱歉，我现在无法回答这个问题。';
-    } catch (e) {
+      final toolCalls = response.choices.first.message.toolCalls;
+      if (toolCalls != null && toolCalls.isNotEmpty) {
+        developer.log('检测到函数调用', name: 'GptService');
+        for (final toolCall in toolCalls) {
+          developer.log('函数名: ${toolCall.function.name}', name: 'GptService');
+          developer.log('函数参数: ${toolCall.function.arguments}',
+              name: 'GptService');
+
+          if (toolCall.function.name == 'insertOrUpdateHealthPlan') {
+            final arguments = jsonDecode(toolCall.function.arguments);
+            developer.log('解析函数参数: $arguments', name: 'GptService');
+
+            final date = DateTime.parse(arguments['date'] as String);
+            developer.log('日期: $date', name: 'GptService');
+
+            final activities = (arguments['activities'] as List)
+                .map((item) =>
+                    ActivityItem.fromJson(item as Map<String, dynamic>))
+                .toList();
+            developer.log('活动数量: ${activities.length}', name: 'GptService');
+
+            final db = _ref.read(databaseProvider);
+            developer.log('开始保存到数据库', name: 'GptService');
+            await db.insertOrUpdateHealthPlan(
+              date: date,
+              activities: activities,
+            );
+            developer.log('保存成功', name: 'GptService');
+          }
+        }
+      } else {
+        developer.log('没有检测到函数调用', name: 'GptService');
+      }
+
+      final content = response.choices.first.message.content;
+      developer.log('返回消息内容: $content', name: 'GptService');
+      return content ?? '抱歉，我现在无法回答这个问题。';
+    } catch (e, stack) {
+      developer.log('聊天失败', name: 'GptService', error: e, stackTrace: stack);
       throw Exception('聊天失败: $e');
     }
   }
