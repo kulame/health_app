@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/database_provider.dart';
 import '../models/activity_item.dart';
 import 'dart:developer' as developer;
+import '../utils/activity_item_utils.dart';
 
 class GptService {
   final OpenAIClient _client;
@@ -167,9 +168,9 @@ class GptService {
 
   Future<String> agent(
     String message,
-    List<ChatMessage> history, {
+    List<ChatMessage> history,
     List<ActivityItem>? activities,
-  }) async {
+  ) async {
     const tool = ChatCompletionTool(
       type: ChatCompletionToolType.function,
       function: _savePlanFunction,
@@ -289,9 +290,7 @@ ${activities.map((a) => '''
         developer.log('没有检测到函数调用', name: 'GptService');
       }
 
-      final content = choice.message.content;
-      developer.log('最终返回内容: $content', name: 'GptService');
-      return content ?? '抱歉，我现在无法回答这个问题。';
+      return chat(message, history, activities);
     } catch (e, stack) {
       developer.log('聊天失败', name: 'GptService', error: e, stackTrace: stack);
       throw Exception('聊天失败: $e');
@@ -312,6 +311,79 @@ ${activities.map((a) => '''
       );
     } catch (e) {
       throw Exception('保存健康计划失败: $e');
+    }
+  }
+
+  Future<String> chat(
+    String message,
+    List<ChatMessage> history,
+    List<ActivityItem>? activities,
+  ) async {
+    try {
+      developer.log('开始处理聊天请求', name: 'GptService');
+      developer.log('用户消息: $message', name: 'GptService');
+      developer.log('历史消息数量: ${history.length}', name: 'GptService');
+      if (activities != null) {
+        developer.log('当前健康计划活动数量: ${activities.length}', name: 'GptService');
+      }
+
+      final currentPlanMessage = activities != null && activities.isNotEmpty
+          ? '''
+当前的健康计划如下：
+${ActivityItemUtils.formatToString(activities)}'''
+          : null;
+
+      final messages = [
+        ChatCompletionMessage.system(
+          content: '''你是一个友好的健康顾问。请用简洁专业的语言回答用户的问题。
+          ${currentPlanMessage ?? '用户当前没有健康计划。'}''',
+        ),
+        ...history.map((msg) => msg.isUser
+            ? ChatCompletionMessage.user(
+                content: ChatCompletionUserMessageContent.string(msg.message))
+            : ChatCompletionMessage.assistant(content: msg.message)),
+        ChatCompletionMessage.user(
+          content: ChatCompletionUserMessageContent.string(message),
+        ),
+      ];
+
+      developer.log('发送请求到 GPT', name: 'GptService');
+      developer.log('系统提示: ${messages.first.content}', name: 'GptService');
+      developer.log(
+          '历史消息: ${messages.skip(1).take(messages.length - 2).map((m) => '${m.role}: ${m.content}').toList()}',
+          name: 'GptService');
+      developer.log('当前消息: ${messages.last.content}', name: 'GptService');
+
+      final response = await _client.createChatCompletion(
+        request: CreateChatCompletionRequest(
+          model: ChatCompletionModel.modelId(_modelId),
+          messages: messages,
+          temperature: 0.7,
+        ),
+      );
+
+      // 打印完整的响应数据
+      developer.log('OpenAI 完整响应:', name: 'GptService');
+      developer.log('ID: ${response.id}', name: 'GptService');
+      developer.log('模型: ${response.model}', name: 'GptService');
+      developer.log('使用tokens: ${response.usage?.totalTokens ?? 0}',
+          name: 'GptService');
+      developer.log('提示tokens: ${response.usage?.promptTokens ?? 0}',
+          name: 'GptService');
+      developer.log('完成tokens: ${response.usage?.completionTokens ?? 0}',
+          name: 'GptService');
+
+      final choice = response.choices.first;
+      developer.log('选择索引: ${choice.index}', name: 'GptService');
+      developer.log('结束原因: ${choice.finishReason}', name: 'GptService');
+      developer.log('消息内容: ${choice.message}', name: 'GptService');
+
+      final content = choice.message.content;
+      developer.log('最终返回内容: $content', name: 'GptService');
+      return content ?? '抱歉，我现在无法回答这个问题。';
+    } catch (e, stack) {
+      developer.log('聊天失败', name: 'GptService', error: e, stackTrace: stack);
+      throw Exception('聊天失败: $e');
     }
   }
 }

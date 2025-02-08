@@ -213,7 +213,7 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
       final response = await ref.read(gptServiceProvider).agent(
             _controller.text,
             _messages,
-            activities: activities.value,
+            activities.value,
           );
 
       setState(() {
