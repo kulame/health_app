@@ -1,55 +1,16 @@
 # task
-你是一个ai agent 开发人员，请根据当前代码 @codebase  实现一个agent
+修改ai智能体
 
-## 核心能力
-1. 将ai返回的健康计划，保存到数据库里
+## 要求
+1. 需要读取用户当前的健康计划
+2. 根据用户当前的健康计划和用户聊天内容，重新调整用户健康计划
+3. 调整后的健康计划需要保存到数据库中 
+4. ai总结自己调整的健康计划，并告知用户
 
-## 输入
-1. Date: 当前日期，类型为Date
-2. CurrentPlan: 当前健康计划，类型为json字符串
-json结构为
-{
-      'type': 'object',
-      'properties': {
-        'activities': {
-          'type': 'array',
-          'items': {
-            'type': 'object',
-            'properties': {
-              'title': {'type': 'string'},
-              'time': {'type': 'string'},
-              'kcal': {'type': 'string'},
-              'type': {
-                'type': 'string',
-                'enum': ['activity', 'meal']
-              },
-              'mealItems': {
-                'type': 'array',
-                'items': {
-                  'type': 'object',
-                  'required': ['name', 'kcal'],
-                  'properties': {
-                    'name': {'type': 'string'},
-                    'kcal': {'type': 'string'}
-                  },
-                  'additionalProperties': false
-                }
-              }
-            },
-            'required': ['title', 'time', 'kcal', 'type', 'mealItems'],
-            'additionalProperties': false
-          }
-        }
-      },
-      'required': ['activities'],
-      'additionalProperties': false
-}
+## 约束条件
+1. 代码保存在lib/services/gpt_service.dart
 
-
-## 约束条件 
-1. 代码保存在 lib/tools 目录里。
-2. 需要检测入参的格式。
-3. 需熬详细的文档。
-4. 支持openai通过function calling 调用。
-
-
+## 实现
+1 @GptService  chat接口增加一个参数activites  类型是List<ActivityItem>  用来记录用户当前的健康计划。
+2 修改相关调用chat接口的函数，传入activities。
+3 chat函数将activities transform成字符串，一并传给chatgpt 让gpt可以获得用户当前计划的上下文
