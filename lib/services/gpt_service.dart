@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:health_app/models/chat_message.dart';
 import 'package:openai_dart/openai_dart.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -163,7 +164,7 @@ class GptService {
     }
   }
 
-  Future<String> chat(String message, List<String> history) async {
+  Future<String> chat(String message, List<ChatMessage> history) async {
     const tool = ChatCompletionTool(
       type: ChatCompletionToolType.function,
       function: _savePlanFunction,

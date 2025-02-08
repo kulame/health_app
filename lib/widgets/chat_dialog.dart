@@ -207,10 +207,8 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
     _scrollToBottom();
 
     try {
-      final response = await ref.read(gptServiceProvider).chat(
-            _controller.text,
-            _messages.map((m) => m.message).toList(),
-          );
+      final response =
+          await ref.read(gptServiceProvider).chat(_controller.text, _messages);
 
       setState(() {
         _messages.add(ChatMessage(
