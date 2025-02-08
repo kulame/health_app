@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/gpt_service_provider.dart';
+import '../models/chat_message.dart';
+import 'chat_message_widget.dart';
 import 'package:flutter/services.dart';
 
 class ChatDialog extends ConsumerStatefulWidget {
@@ -93,7 +95,9 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
         controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: _messages.length,
-        itemBuilder: (context, index) => _messages[index],
+        itemBuilder: (context, index) => ChatMessageWidget(
+          message: _messages[index],
+        ),
       );
 
   Widget _buildInputArea() => Container(
@@ -203,8 +207,10 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
     _scrollToBottom();
 
     try {
-      final response =
-          await ref.read(gptServiceProvider).chat(_controller.text);
+      final response = await ref.read(gptServiceProvider).chat(
+            _controller.text,
+            _messages.map((m) => m.message).toList(),
+          );
 
       setState(() {
         _messages.add(ChatMessage(
@@ -227,49 +233,4 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
       }
     }
   }
-}
-
-class ChatMessage extends StatelessWidget {
-  final String message;
-  final bool isUser;
-
-  const ChatMessage({
-    super.key,
-    required this.message,
-    required this.isUser,
-  });
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Row(
-          mainAxisAlignment:
-              isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-          children: [
-            Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.75,
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-              decoration: BoxDecoration(
-                color: isUser
-                    ? const Color.fromRGBO(37, 195, 166, 1)
-                    : const Color.fromRGBO(35, 35, 37, 1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                message,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  height: 1.4,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
 }
