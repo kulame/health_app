@@ -4,6 +4,7 @@ import '../providers/gpt_service_provider.dart';
 import '../models/chat_message.dart';
 import 'chat_message_widget.dart';
 import 'package:flutter/services.dart';
+import '../providers/day_health_report_provider.dart';
 
 class ChatDialog extends ConsumerStatefulWidget {
   const ChatDialog({super.key});
@@ -207,8 +208,13 @@ class _ChatDialogState extends ConsumerState<ChatDialog> {
     _scrollToBottom();
 
     try {
-      final response =
-          await ref.read(gptServiceProvider).chat(_controller.text, _messages);
+      final activities = await ref.watch(dayHealthReportProvider);
+
+      final response = await ref.read(gptServiceProvider).chat(
+            _controller.text,
+            _messages,
+            activities: activities.value,
+          );
 
       setState(() {
         _messages.add(ChatMessage(

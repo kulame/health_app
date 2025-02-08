@@ -165,7 +165,11 @@ class GptService {
     }
   }
 
-  Future<String> chat(String message, List<ChatMessage> history) async {
+  Future<String> chat(
+    String message,
+    List<ChatMessage> history, {
+    List<ActivityItem>? activities,
+  }) async {
     const tool = ChatCompletionTool(
       type: ChatCompletionToolType.function,
       function: _savePlanFunction,
@@ -175,11 +179,25 @@ class GptService {
       developer.log('开始处理聊天请求', name: 'GptService');
       developer.log('用户消息: $message', name: 'GptService');
       developer.log('历史消息数量: ${history.length}', name: 'GptService');
+      if (activities != null) {
+        developer.log('当前健康计划活动数量: ${activities.length}', name: 'GptService');
+      }
+
+      final currentPlanMessage = activities != null && activities.isNotEmpty
+          ? '''
+当前的健康计划如下：
+${activities.map((a) => '''
+- ${a.time} ${a.title} (${a.kcal})
+  ${a.type == ActivityType.meal ? '包含: ${a.mealItems?.map((m) => "${m.name}(${m.kcal})").join(", ")}' : ''}
+''').join()}
+'''
+          : null;
 
       final messages = [
         ChatCompletionMessage.system(
           content: '''你是一个友好的健康顾问。请用简洁专业的语言回答用户的问题。
-          如果用户提到需要调整健康计划，请使用 insertOrUpdateHealthPlan 函数来保存新的计划。''',
+          如果用户提到需要调整健康计划，请使用 insertOrUpdateHealthPlan 函数来保存新的计划。
+          ${currentPlanMessage ?? '用户当前没有健康计划。'}''',
         ),
         ...history.map((msg) => msg.isUser
             ? ChatCompletionMessage.user(
